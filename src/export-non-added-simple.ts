@@ -29,12 +29,17 @@ const nonAdded = progress
   .sort((left, right) => left.index - right.index);
 
 mkdirSync("reports/manual-review", { recursive: true });
+mkdirSync("docs", { recursive: true });
 writeFileSync("reports/manual-review/non-added-simple.csv", toCsv(nonAdded));
 writeFileSync("reports/manual-review/non-added-simple.md", toMarkdown(nonAdded));
+writeFileSync("data/manual-review/non-added-simple.csv", toCsv(nonAdded));
+writeFileSync("docs/non-added-youtube-items.md", toMarkdown(nonAdded));
 
 console.log(`Exported non-added items: ${nonAdded.length}`);
 console.log("Wrote reports/manual-review/non-added-simple.csv");
 console.log("Wrote reports/manual-review/non-added-simple.md");
+console.log("Wrote data/manual-review/non-added-simple.csv");
+console.log("Wrote docs/non-added-youtube-items.md");
 
 function toNonAddedItem(progressItem: ManualProgressItem, queueItem: QueueItem | undefined): NonAddedItem {
   return {
