@@ -1,0 +1,33 @@
+{
+  "name": "apple-music-migration",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check": "bun run src/check-youtube-manifest.ts",
+    "generate:developer-token": "bun run src/generate-developer-token.ts",
+    "auth:user-token": "bun run src/start-user-token-auth.ts",
+    "apply:manual-overrides": "bun run src/apply-manual-overrides.ts",
+    "accept:deep-review-upgrades": "bun run src/accept-deep-review-upgrades.ts",
+    "accept:score-1-review-upgrades": "bun run src/accept-score-1-review-upgrades.ts",
+    "count:favorites": "bun run src/count-favorite-songs.ts",
+    "count:playlist": "bun run src/count-playlist.ts",
+    "create:favorites-copy": "bun run src/create-favorites-copy-playlist.ts",
+    "deep-review:score-2-4": "bun run src/deep-review-score-2-4.ts",
+    "deep-review:score-1": "bun run src/deep-review-score-1.ts",
+    "export:non-added-simple": "bun run src/export-non-added-simple.ts",
+    "export:review-set": "bun run src/export-review-set.ts",
+    "manual:init": "bun run src/init-manual-review.ts",
+    "manual:add-song": "bun run src/manual-add-song.ts",
+    "manual:record": "bun run src/manual-record.ts",
+    "manual:search": "bun run src/manual-search.ts",
+    "manual:summary": "bun run src/manual-progress-summary.ts",
+    "score:youtube": "bun run src/score-youtube-apple-matches.ts",
+    "score:youtube:low": "bun run src/score-youtube-apple-matches.ts --only-max-score=3",
+    "test:developer-token": "bun run src/test-developer-token.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}
