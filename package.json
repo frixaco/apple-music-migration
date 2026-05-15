@@ -24,7 +24,8 @@
     "score:youtube": "bun run src/score-youtube-apple-matches.ts",
     "score:youtube:low": "bun run src/score-youtube-apple-matches.ts --only-max-score=3",
     "test:developer-token": "bun run src/test-developer-token.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "youtube:create-non-added-playlist": "bun run src/create-youtube-non-added-playlist.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

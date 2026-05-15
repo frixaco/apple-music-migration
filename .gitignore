@@ -4,6 +4,7 @@ node_modules/
 !.env.example
 secrets/
 *.p8
+client_secret_*.json
 
 data/processed/
 data/cache/
