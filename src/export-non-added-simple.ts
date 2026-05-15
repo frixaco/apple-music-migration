@@ -62,19 +62,7 @@ function toMarkdown(items: NonAddedItem[]): string {
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([status, count]) => `- ${status}: ${count}`)
     .join("\n");
-  const rows = items
-    .map((item) =>
-      [
-        item.index,
-        item.status,
-        markdownCell(item.youtubeTitle),
-        markdownCell(item.youtubeChannel),
-        formatDuration(item.youtubeDurationSeconds),
-        markdownLink("open", item.youtubeUrl),
-        markdownCell(item.reviewerNotes),
-      ].join(" | "),
-    )
-    .join("\n");
+  const rows = items.map((item) => toMarkdownListItem(item)).join("\n\n");
 
   return [
     "# Non-Added YouTube Items",
@@ -83,10 +71,19 @@ function toMarkdown(items: NonAddedItem[]): string {
     "",
     statusSummary,
     "",
-    "| # | Status | YouTube title | Channel | Duration | Link | Notes |",
-    "|---:|---|---|---|---:|---|---|",
     rows,
     "",
+  ].join("\n");
+}
+
+function toMarkdownListItem(item: NonAddedItem): string {
+  return [
+    `${item.index}. ${markdownCell(item.youtubeTitle)}`,
+    `   - Status: ${item.status}`,
+    `   - Channel: ${markdownCell(item.youtubeChannel)}`,
+    `   - Duration: ${formatDuration(item.youtubeDurationSeconds)}`,
+    `   - YouTube: ${item.youtubeUrl}`,
+    `   - Notes: ${markdownCell(item.reviewerNotes)}`,
   ].join("\n");
 }
 
@@ -114,10 +111,6 @@ function markdownCell(value: unknown): string {
     .replaceAll("\\", "\\\\")
     .replaceAll("|", "\\|")
     .replaceAll("\n", " ");
-}
-
-function markdownLink(label: string, url: string): string {
-  return url === "" ? "" : `[${label}](${url})`;
 }
 
 function csvCell(value: unknown): string {
