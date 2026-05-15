@@ -12,6 +12,7 @@
     "count:favorites": "bun run src/count-favorite-songs.ts",
     "count:playlist": "bun run src/count-playlist.ts",
     "create:favorites-copy": "bun run src/create-favorites-copy-playlist.ts",
+    "copy:favorites-to-all": "bun run src/copy-favorites-to-all.ts",
     "deep-review:score-2-4": "bun run src/deep-review-score-2-4.ts",
     "deep-review:score-1": "bun run src/deep-review-score-1.ts",
     "export:non-added-simple": "bun run src/export-non-added-simple.ts",
