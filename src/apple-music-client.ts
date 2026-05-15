@@ -109,6 +109,10 @@ export class AppleMusicClient {
     });
   }
 
+  async deleteLibrarySongRating(librarySongId: string): Promise<void> {
+    await this.delete(`/v1/me/ratings/library-songs/${encodeURIComponent(librarySongId)}`);
+  }
+
   async searchCatalog(options: {
     storefront: string;
     term: string;
@@ -161,7 +165,11 @@ export class AppleMusicClient {
     return this.request<T>("POST", path, body);
   }
 
-  private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  private async delete<T>(path: string): Promise<T> {
+    return this.request<T>("DELETE", path);
+  }
+
+  private async request<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
     const url = path.startsWith("http") ? path : `${appleMusicApiOrigin}${path}`;
     const response = await fetch(url, {
       method,

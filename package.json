@@ -15,6 +15,7 @@
     "copy:favorites-to-all": "bun run src/copy-favorites-to-all.ts",
     "deep-review:score-2-4": "bun run src/deep-review-score-2-4.ts",
     "deep-review:score-1": "bun run src/deep-review-score-1.ts",
+    "empty:favorites": "bun run src/empty-favorite-songs.ts",
     "export:non-added-simple": "bun run src/export-non-added-simple.ts",
     "export:review-set": "bun run src/export-review-set.ts",
     "manual:init": "bun run src/init-manual-review.ts",
