@@ -2,63 +2,57 @@
 
 Requested playlist:
 
-- https://www.youtube.com/playlist?list=PLcjQUNxFpwsTG6mUHA5nVhtvCrwcqdfer
+- https://youtube.com/playlist?list=PLcjQUNxFpwsTG6mUHA5nVhtvCrwcqdfer&si=LUpuZ2uRQzUbuybz
 
-Current status:
+Current public fetch:
 
-- Public `yt-dlp` fetch failed: YouTube reports the playlist does not exist to unauthenticated access.
-- Authenticated YouTube Data API fetch failed before page 1 because the Google project quota is exhausted.
-- No fresh live playlist snapshot was saved yet.
+- Playlist title: Music NOT on Apple Music
+- Playlist ID: PLcjQUNxFpwsTG6mUHA5nVhtvCrwcqdfer
+- Fetched items: 204
+- Unavailable-looking items in fetched playlist: 0
+- Duplicate video IDs: 0
 
-Local creation state:
+Local comparison:
 
-- Local non-added items: 204
-- Previously recorded as added to YouTube playlist: 197
-- Previously skipped by YouTube API: 2
-- Local non-added items not recorded as added or skipped: 5
+- Local non-added items from the Apple Music migration ledger: 204
+- Current YouTube playlist items: 204
+- Old local non-added IDs missing from current YouTube playlist: 2
+- Current YouTube playlist IDs not in old local non-added list: 2
 
-Previously skipped by YouTube API:
+Old local unavailable items still present only in the old migration ledger:
 
 - `[Deleted video]`
   - Local index: 211
   - Video ID: BOB6lvI3Y8c
   - URL: https://www.youtube.com/watch?v=BOB6lvI3Y8c
-  - Original reason: YouTube API returned `videoNotFound`.
 
 - `[Private video]`
   - Local index: 378
   - Video ID: 0mhDexv_PBI
   - URL: https://www.youtube.com/watch?v=0mhDexv_PBI
-  - Original reason: YouTube API returned `failedPrecondition`.
 
-Local non-added items not recorded in the YouTube playlist creation state:
+New videos present in the current YouTube playlist instead:
 
-- `百鬼祭 / 常闇トワ(cover)`
-  - Local index: 692
-  - Video ID: 2o_H09MdT94
-  - URL: https://www.youtube.com/watch?v=2o_H09MdT94
+- `【Ado】 Show（唱）`
+  - Playlist index: 198
+  - Video ID: pgXpM4l_MwI
+  - URL: https://www.youtube.com/watch?v=pgXpM4l_MwI
 
-- `Forgotten Words (忘れじの言の葉) ／DAZBEE cover`
-  - Local index: 693
-  - Video ID: lFNWUL9fqG8
-  - URL: https://www.youtube.com/watch?v=lFNWUL9fqG8
+- `"Code Race" by Ryan Lott of Son Lux | Marathon OST`
+  - Playlist index: 199
+  - Video ID: -wQfCuKxC5c
+  - URL: https://www.youtube.com/watch?v=-wQfCuKxC5c
 
-- `Nhato & Taishi (Edelritter) 2018 ULTRA FAN MIX -NONSTOP EDM-`
-  - Local index: 695
-  - Video ID: wunNLFAdYfc
-  - URL: https://www.youtube.com/watch?v=wunNLFAdYfc
+Unavailable-video check:
 
-- `Owl - ~a guest has arrived, the owl reports~ ／DAZBEE COVER`
-  - Local index: 696
-  - Video ID: eQBlomFo1Kw
-  - URL: https://www.youtube.com/watch?v=eQBlomFo1Kw
+- Public `yt-dlp` fetch sees no deleted/private/unavailable placeholder entries.
+- Authenticated YouTube Data API check could not run because the Google project quota is exhausted.
+- Based on the public fetch, the current playlist itself looks good.
+- If YouTube UI still says unavailable videos are hidden, that is likely YouTube showing owner-only hidden playlist entries that public fetches omit, or stale UI/cache state. Re-run the authenticated check after quota resets to confirm.
 
-- `Stefan Nixdorf - Commodus Pt.2 (The Menace) | Diversity Release`
-  - Local index: 701
-  - Video ID: HtkImmE7VfA
-  - URL: https://www.youtube.com/watch?v=HtkImmE7VfA
+Saved local files:
 
-Next check:
-
-- Re-run `bun run fetch:youtube-non-added` after the YouTube API quota resets or with a different Google Cloud OAuth project.
-- That run will save `data/raw/youtube_non_added_playlist_latest.json` and compare the live playlist against the local 204-item non-added list.
+- `data/raw/youtube_non_added_playlist_latest.json`
+- `data/manual-review/youtube-non-added-playlist-current.json`
+- `data/manual-review/youtube-non-added-playlist-current.csv`
+- `docs/youtube-non-added-playlist-current.md`
