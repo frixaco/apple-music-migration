@@ -19,6 +19,7 @@
     "empty:favorites": "bun run src/empty-favorite-songs.ts",
     "export:non-added-simple": "bun run src/export-non-added-simple.ts",
     "export:review-set": "bun run src/export-review-set.ts",
+    "fetch:youtube-non-added": "bun run src/fetch-youtube-non-added-playlist.ts",
     "manual:init": "bun run src/init-manual-review.ts",
     "manual:add-song": "bun run src/manual-add-song.ts",
     "manual:record": "bun run src/manual-record.ts",
