@@ -8,7 +8,7 @@ The repo also holds the Bun scripts used for the original one-off migration of t
 playlist into Apple Music Favourite Songs. The app and the scripts share matching and the Apple Music
 client through `src/lib`.
 
-Live: https://migrator-production-3fd2.up.railway.app
+Live: https://music-manager.frixaco.com
 
 ## Stack
 
@@ -46,7 +46,7 @@ bun run dev              # http://localhost:3000
 
 - `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from the "Migrator web" OAuth client in the `frixaco`
-  Google Cloud project. Its redirect URIs are the Railway domain and `localhost:3000`, ending in
+  Google Cloud project. Its redirect URIs are `https://music-manager.frixaco.com` and `http://localhost:3000`, ending in
   `/api/auth/callback/google`. The app is in Testing mode, so only listed test users can sign in with Google.
 - The MusicKit key: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_MEDIA_ID`, and either
   `APPLE_PRIVATE_KEY_PATH` (local) or `APPLE_PRIVATE_KEY` (the PEM contents, on Railway).
