@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { appleMusicClientFromEnv, type AppleMusicCatalogResource } from "./lib/apple-music-client";
-import { artistBeforeDash, channelArtist, cleanSearch, dedupeCandidates, millisToSeconds, normalize, scoreDuration } from "./lib/matching";
-import { readMatchReport, type ConfidenceScore, type MatchReportItem } from "./lib/match-report";
+import { artistBeforeDash, channelArtist, cleanSearch, dedupeCandidates, millisToSeconds, normalize, scoreDuration, type ConfidenceScore } from "./lib/matching";
+import { readMatchReport, type MatchReportItem } from "./lib/match-report";
 import { round, sleep, unique } from "./lib/util";
 
 type Override = {

@@ -1,7 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { toCsv } from "./csv";
-
-export type ConfidenceScore = 1 | 2 | 3 | 4 | 5;
+import type { ConfidenceScore } from "./matching";
 
 export type MatchReportItem = {
   index: number;

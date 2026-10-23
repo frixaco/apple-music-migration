@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { youtubeScope } from "./youtube";
 
 export type GoogleToken = {
   access_token: string;
@@ -17,7 +18,6 @@ export type GoogleOAuthClient = {
 
 export const oauthClientPath = "secrets/google-oauth-client.json";
 export const tokenPath = "secrets/google-youtube-token.json";
-export const youtubeScope = "https://www.googleapis.com/auth/youtube";
 
 export function readOAuthClient(): GoogleOAuthClient {
   const { installed } = JSON.parse(readFileSync(oauthClientPath, "utf8")) as {

@@ -12,7 +12,7 @@ import {
   type CandidateScore,
   type ParsedTitle,
 } from "./lib/matching";
-import { round, sleep, unique } from "./lib/util";
+import { round, sleep } from "./lib/util";
 
 type YouTubeEntry = {
   id?: string;

@@ -1,3 +1,5 @@
+import type { match } from '@/db/schema'
+
 export type Service = 'youtube' | 'apple'
 
 export type Playlist = {
@@ -62,24 +64,8 @@ export type Candidate = {
  */
 export type MatchStatus = 'searching' | 'found' | 'check' | 'not_found' | 'done'
 
-export type Match = {
-  videoId: string
-  playlistItemId: string
-  sourcePlaylistId: string
-  sourcePlaylistTitle: string
-  position: number
-  title: string
-  channel: string
-  durationSeconds: number | null
-  thumbnailUrl: string | null
-  query: string
-  status: MatchStatus
-  confidence: number | null
-  candidates: Candidate[]
-  selectedCandidateId: string | null
-  appleSongId: string | null
-  outcome: string | null
-}
+/** A video in a match run and its Apple Music options, as stored in the `match` table. */
+export type Match = Omit<typeof match.$inferSelect, 'userId' | 'runId' | 'updatedAt'>
 
 export type MatchRun = {
   id: string
