@@ -4,11 +4,16 @@ import { ArrowUpRightIcon, ChevronDownIcon, SearchIcon, SearchXIcon } from 'luci
 import { useMemo, useState } from 'react'
 import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
-import { ListFooter, ListToolbar } from '@/components/list-layout'
+import {
+  FilterTabs,
+  ListActions,
+  ListFooter,
+  ListToolbar,
+  SelectAllHead,
+  SelectRowCell,
+} from '@/components/list-layout'
 import { AddToAppleMenu, MoveMenu } from '@/components/playlist-menus'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Empty,
   EmptyContent,
@@ -30,7 +35,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   addToApple,
   closeRun,
@@ -39,10 +43,11 @@ import {
   searchAgain,
   selectCandidate,
 } from '@/functions/runs'
+import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
 import { formatDifference, formatDuration, timeAgo } from '@/lib/format'
 import { runQuery } from '@/lib/queries'
-import type { Match, MatchRun, MatchStatus } from '@/lib/types'
+import type { Match, MatchRun } from '@/lib/types'
 import { youtubeVideoUrl } from '@/lib/youtube'
 
 export const Route = createFileRoute('/_app/run')({
@@ -51,12 +56,12 @@ export const Route = createFileRoute('/_app/run')({
 })
 
 const filters = {
-  open: { label: 'Open', statuses: ['searching', 'found', 'check', 'not_found'] },
-  found: { label: 'Found', statuses: ['found'] },
-  check: { label: 'Check', statuses: ['check'] },
-  missing: { label: 'Not found', statuses: ['not_found'] },
-  done: { label: 'Done', statuses: ['done'] },
-} satisfies Record<string, { label: string; statuses: MatchStatus[] }>
+  open: { label: 'Open', test: (item: Match) => item.status !== 'done' },
+  found: { label: 'Found', test: (item: Match) => item.status === 'found' },
+  check: { label: 'Check', test: (item: Match) => item.status === 'check' },
+  missing: { label: 'Not found', test: (item: Match) => item.status === 'not_found' },
+  done: { label: 'Done', test: (item: Match) => item.status === 'done' },
+} satisfies Record<string, { label: string; test: (item: Match) => boolean }>
 
 type Filter = keyof typeof filters
 
@@ -98,19 +103,15 @@ function NoRun() {
 function OpenRun({ run }: { run: MatchRun }) {
   const [filter, setFilter] = useState<Filter>('open')
   const visible = useMemo(
-    () =>
-      run.matches.filter((item) =>
-        (filters[filter].statuses as MatchStatus[]).includes(item.status),
-      ),
+    () => run.matches.filter(filters[filter].test),
     [run.matches, filter],
   )
   const selection = useSelection(useMemo(() => visible.map((item) => item.videoId), [visible]))
   const selected = run.matches.filter((item) => selection.isSelected(item.videoId))
   const selectedIds = selected.map((item) => item.videoId)
 
-  const [activeId, setActiveId] = useState<string | undefined>()
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const active = run.matches.find((item) => item.videoId === activeId) ?? visible.at(0)
+  const detail = useActiveRow(run.matches, visible, (item) => item.videoId)
+  const active = detail.active
 
   const searched = run.matches.filter((item) => item.status !== 'searching').length
   const done = run.matches.filter((item) => item.status === 'done')
@@ -158,35 +159,17 @@ function OpenRun({ run }: { run: MatchRun }) {
           </Button>
         </div>
         <ListToolbar>
-          <ToggleGroup
-            type="single"
-            variant="segmented"
+          <FilterTabs
+            filters={filters}
+            items={run.matches}
             value={filter}
-            onValueChange={(value) => value && setFilter(value as Filter)}
-          >
-            {Object.entries(filters).map(([key, { label, statuses }]) => (
-              <ToggleGroupItem key={key} value={key}>
-                {label}
-                <Badge variant="count">
-                  {
-                    run.matches.filter((item) =>
-                      (statuses as MatchStatus[]).includes(item.status),
-                    ).length
-                  }
-                </Badge>
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <div className="ml-auto flex items-center gap-2">
-            {selected.length > 0 && (
-              <span className="whitespace-nowrap text-muted-foreground">
-                {selected.length} selected
-              </span>
-            )}
+            onValueChange={setFilter}
+          />
+          <ListActions selectedCount={selected.length}>
             <AddToAppleMenu
               key={run.id}
               count={selected.length}
-              noun={selected.length === 1 ? 'song' : 'songs'}
+              noun="song"
               defaultSelected={run.targetPlaylistIds}
               pending={add.isPending}
               onAdd={(playlistIds) => add.mutate({ data: { videoIds: selectedIds, playlistIds } })}
@@ -227,18 +210,12 @@ function OpenRun({ run }: { run: MatchRun }) {
             <Button variant="ghost" disabled={selected.length === 0} onClick={selection.clear}>
               Clear
             </Button>
-          </div>
+          </ListActions>
         </ListToolbar>
         <Table containerClassName="flex-1 overflow-y-auto">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-8">
-                <Checkbox
-                  aria-label="Select all"
-                  checked={selection.allState}
-                  onCheckedChange={(checked) => selection.setAll(checked === true)}
-                />
-              </TableHead>
+              <SelectAllHead selection={selection} />
               <TableHead className="w-10 text-right max-md:hidden">#</TableHead>
               <TableHead>YouTube title</TableHead>
               <TableHead className="w-80 max-lg:hidden">Best option</TableHead>
@@ -254,21 +231,10 @@ function OpenRun({ run }: { run: MatchRun }) {
                   key={item.videoId}
                   data-state={selection.isSelected(item.videoId) ? 'selected' : undefined}
                   data-active={item.videoId === active?.videoId}
-                  onClick={() => {
-                    setActiveId(item.videoId)
-                    setSheetOpen(true)
-                  }}
+                  onClick={() => detail.show(item)}
                   className="cursor-default max-md:h-12"
                 >
-                  <TableCell onClick={(event) => event.stopPropagation()}>
-                    <Checkbox
-                      aria-label={`Select ${item.title}`}
-                      checked={selection.isSelected(item.videoId)}
-                      onCheckedChange={(checked) =>
-                        selection.toggle(item.videoId, checked === true)
-                      }
-                    />
-                  </TableCell>
+                  <SelectRowCell selection={selection} id={item.videoId} label={item.title} />
                   <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
                     {item.position}
                   </TableCell>
@@ -309,8 +275,8 @@ function OpenRun({ run }: { run: MatchRun }) {
         <MatchOptions
           key={`${active.videoId}:${active.query}`}
           item={active}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
+          open={detail.open}
+          onOpenChange={detail.setOpen}
         />
       )}
     </>

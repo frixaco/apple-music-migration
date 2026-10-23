@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
-import { formatCount } from '@/lib/format'
+import { formatCount, plural } from '@/lib/format'
 import { canAddTo, playlistKey, serviceName } from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 import type { Playlist, Service } from '@/lib/types'
@@ -44,6 +44,7 @@ export function AddToAppleMenu({
   children,
 }: {
   count: number
+  /** Singular noun for what is added, e.g. "song". */
   noun: string
   defaultSelected?: string[]
   pending: boolean
@@ -71,7 +72,7 @@ export function AddToAppleMenu({
           <Command>
             <CommandList>
               <CommandEmpty>No Apple Music playlists</CommandEmpty>
-              <CommandGroup heading={`Add ${count} ${noun} to`}>
+              <CommandGroup heading={`Add ${plural(count, noun)} to`}>
                 {targets.map((playlist) => (
                   <CommandItem key={playlist.id} onSelect={() => toggle(playlist.id)}>
                     <Checkbox
@@ -109,7 +110,7 @@ export function AddToAppleMenu({
               }}
             >
               {pending && <Spinner />}
-              Add to {selected.length} {selected.length === 1 ? 'playlist' : 'playlists'}
+              Add to {plural(selected.length, 'playlist')}
             </Button>
           </MenuFooter>
         </PopoverContent>
@@ -157,7 +158,7 @@ export function MoveMenu({
         canAddTo(playlist),
     ),
   }))
-  const videos = `${count} ${count === 1 ? 'video' : 'videos'}`
+  const videos = plural(count, 'video')
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

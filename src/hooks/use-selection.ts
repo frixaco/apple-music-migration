@@ -29,3 +29,5 @@ export function useSelection(ids: string[]) {
     clear: () => setSelected(new Set()),
   }
 }
+
+export type Selection = ReturnType<typeof useSelection>

@@ -1,16 +1,21 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel, DetailRow } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
-import { ListFooter, ListToolbar } from '@/components/list-layout'
+import {
+  FilterInput,
+  ListActions,
+  ListFooter,
+  ListToolbar,
+  SelectAllHead,
+  SelectRowCell,
+} from '@/components/list-layout'
 import { AddToAppleMenu } from '@/components/playlist-menus'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Separator } from '@/components/ui/separator'
 import {
   Table,
@@ -21,8 +26,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { addSongs, removeFavorites } from '@/functions/playlists'
+import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
-import { formatCount, formatDifference, formatDuration, timeAgo } from '@/lib/format'
+import { formatCount, formatDifference, formatDuration, plural, timeAgo } from '@/lib/format'
 import { connectionsQuery, playlistsQuery, songsQuery } from '@/lib/queries'
 import type { Song } from '@/lib/types'
 import { youtubeVideoUrl } from '@/lib/youtube'
@@ -52,9 +58,8 @@ function ApplePlaylist() {
   const selection = useSelection(useMemo(() => visible.map((song) => song.id), [visible]))
   const selected = songs.filter((song) => selection.isSelected(song.id))
 
-  const [activeId, setActiveId] = useState<string | undefined>()
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const active = songs.find((song) => song.id === activeId) ?? visible.at(0)
+  const detail = useActiveRow(songs, visible, (song) => song.id)
+  const active = detail.active
 
   const add = useMutation({
     mutationFn: addSongs,
@@ -82,25 +87,16 @@ function ApplePlaylist() {
     <>
       <section className="flex min-w-0 flex-1 flex-col">
         <ListToolbar>
-          <InputGroup className="w-56">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Filter song, artist, album"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
-          </InputGroup>
-          <div className="ml-auto flex items-center gap-2">
-            {selected.length > 0 && (
-              <span className="whitespace-nowrap text-muted-foreground">
-                {selected.length} selected
-              </span>
-            )}
+          <FilterInput
+            value={text}
+            onChange={setText}
+            placeholder="Filter song, artist, album"
+            className="w-56"
+          />
+          <ListActions selectedCount={selected.length}>
             <AddToAppleMenu
               count={selected.length}
-              noun={selected.length === 1 ? 'song' : 'songs'}
+              noun="song"
               pending={add.isPending}
               onAdd={addTo(selected)}
             >
@@ -112,7 +108,7 @@ function ApplePlaylist() {
             {playlist?.isFavorites && (
               <ConfirmButton
                 disabled={selected.length === 0}
-                title={`Remove ${selected.length} from Favourite Songs?`}
+                title={`Remove ${plural(selected.length, 'song')} from Favourite Songs?`}
                 description="Their favourite rating is cleared. They stay in your library and other playlists."
                 confirmLabel="Remove"
                 onConfirm={() =>
@@ -122,18 +118,12 @@ function ApplePlaylist() {
                 Remove from Favourite Songs
               </ConfirmButton>
             )}
-          </div>
+          </ListActions>
         </ListToolbar>
         <Table containerClassName="flex-1 overflow-y-auto">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-8">
-                <Checkbox
-                  aria-label="Select all"
-                  checked={selection.allState}
-                  onCheckedChange={(checked) => selection.setAll(checked === true)}
-                />
-              </TableHead>
+              <SelectAllHead selection={selection} />
               <TableHead className="w-9" />
               <TableHead>Song</TableHead>
               <TableHead className="w-52 max-md:hidden">Artist</TableHead>
@@ -148,19 +138,10 @@ function ApplePlaylist() {
                 key={song.id}
                 data-state={selection.isSelected(song.id) ? 'selected' : undefined}
                 data-active={song.id === active?.id}
-                onClick={() => {
-                  setActiveId(song.id)
-                  setSheetOpen(true)
-                }}
+                onClick={() => detail.show(song)}
                 className="h-9 cursor-default"
               >
-                <TableCell onClick={(event) => event.stopPropagation()}>
-                  <Checkbox
-                    aria-label={`Select ${song.name}`}
-                    checked={selection.isSelected(song.id)}
-                    onCheckedChange={(checked) => selection.toggle(song.id, checked === true)}
-                  />
-                </TableCell>
+                <SelectRowCell selection={selection} id={song.id} label={song.name} />
                 <TableCell className="px-0">
                   <Artwork song={song} />
                 </TableCell>
@@ -195,8 +176,8 @@ function ApplePlaylist() {
         <DetailPanel
           title="Song"
           meta={`${songs.indexOf(active) + 1} of ${formatCount(songs.length)}`}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
+          open={detail.open}
+          onOpenChange={detail.setOpen}
           footer={
             <AddToAppleMenu
               count={1}

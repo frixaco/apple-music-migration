@@ -36,3 +36,8 @@ export function formatDifference(
 export function formatCount(value: number): string {
   return value.toLocaleString('en-US')
 }
+
+/** A count with its noun, e.g. "1 video" or "1,204 videos". */
+export function plural(count: number, noun: string): string {
+  return `${formatCount(count)} ${noun}${count === 1 ? '' : 's'}`
+}

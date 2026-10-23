@@ -1,16 +1,22 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel, DetailRow } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
-import { ListFooter, ListToolbar } from '@/components/list-layout'
+import {
+  FilterInput,
+  FilterTabs,
+  ListActions,
+  ListFooter,
+  ListToolbar,
+  SelectAllHead,
+  SelectRowCell,
+} from '@/components/list-layout'
 import { MoveMenu } from '@/components/playlist-menus'
 import { PlaylistLabel } from '@/components/playlist-label'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Separator } from '@/components/ui/separator'
 import {
   Table,
@@ -29,11 +34,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { removeVideos, sendVideos } from '@/functions/playlists'
 import { startRun } from '@/functions/runs'
+import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
-import { formatCount, formatDuration, timeAgo } from '@/lib/format'
+import { formatCount, formatDuration, plural, timeAgo } from '@/lib/format'
 import { playlistsQuery, videosQuery } from '@/lib/queries'
 import type { Playlist, Video } from '@/lib/types'
 import { youtubeVideoUrl } from '@/lib/youtube'
@@ -96,9 +101,8 @@ function YouTubePlaylist() {
   const selection = useSelection(useMemo(() => visible.map((video) => video.videoId), [visible]))
   const selected = videos.filter((video) => selection.isSelected(video.videoId))
 
-  const [activeId, setActiveId] = useState<string | undefined>()
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const active = videos.find((video) => video.videoId === activeId) ?? visible.at(0)
+  const detail = useActiveRow(videos, visible, (video) => video.videoId)
+  const active = detail.active
 
   const search = useMutation({
     mutationFn: startRun,
@@ -148,44 +152,19 @@ function YouTubePlaylist() {
       ? searchOnApple(items, target, removeFromSource)
       : sendTo(items, target, removeFromSource)
 
-  const counts = Object.fromEntries(
-    Object.entries(filters).map(([key, { test }]) => [key, videos.filter(test).length]),
-  )
-
   return (
     <>
       <section className="flex min-w-0 flex-1 flex-col">
         <ListToolbar>
-          <ToggleGroup
-            type="single"
-            variant="segmented"
+          <FilterTabs
+            filters={filters}
+            items={videos}
             value={filter}
-            onValueChange={(value) => value && setFilter(value as Filter)}
+            onValueChange={setFilter}
             className="max-md:hidden"
-          >
-            {Object.entries(filters).map(([key, { label }]) => (
-              <ToggleGroupItem key={key} value={key}>
-                {label}
-                <Badge variant="count">{formatCount(counts[key])}</Badge>
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <InputGroup className="w-48 max-md:hidden">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Filter"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
-          </InputGroup>
-          <div className="ml-auto flex items-center gap-2">
-            {selected.length > 0 && (
-              <span className="whitespace-nowrap text-muted-foreground">
-                {selected.length} selected
-              </span>
-            )}
+          />
+          <FilterInput value={text} onChange={setText} className="w-48 max-md:hidden" />
+          <ListActions selectedCount={selected.length}>
             <MoveMenu
               count={selected.length}
               sourceId={playlistId}
@@ -207,7 +186,7 @@ function YouTubePlaylist() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>Copy {selected.length} videos to</DropdownMenuLabel>
+                <DropdownMenuLabel>Copy {plural(selected.length, 'video')} to</DropdownMenuLabel>
                 {playlists
                   .filter((item) => item.service === 'youtube' && item.id !== playlistId)
                   .map((target) => (
@@ -220,7 +199,7 @@ function YouTubePlaylist() {
             <ConfirmButton
               disabled={selected.length === 0}
               className="max-md:hidden"
-              title={`Remove ${selected.length} ${selected.length === 1 ? 'video' : 'videos'} from ${title}?`}
+              title={`Remove ${plural(selected.length, 'video')} from ${title}?`}
               description="They are removed from the YouTube playlist. The videos themselves are not affected."
               confirmLabel="Remove"
               onConfirm={() =>
@@ -235,18 +214,12 @@ function YouTubePlaylist() {
             >
               Find on Apple Music
             </Button>
-          </div>
+          </ListActions>
         </ListToolbar>
         <Table containerClassName="flex-1 overflow-y-auto">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-8">
-                <Checkbox
-                  aria-label="Select all"
-                  checked={selection.allState}
-                  onCheckedChange={(checked) => selection.setAll(checked === true)}
-                />
-              </TableHead>
+              <SelectAllHead selection={selection} />
               <TableHead className="w-10 text-right max-md:hidden">#</TableHead>
               <TableHead>Title</TableHead>
               <TableHead className="w-56 max-lg:hidden">Channel</TableHead>
@@ -260,19 +233,10 @@ function YouTubePlaylist() {
                 key={video.videoId}
                 data-state={selection.isSelected(video.videoId) ? 'selected' : undefined}
                 data-active={video.videoId === active?.videoId}
-                onClick={() => {
-                  setActiveId(video.videoId)
-                  setSheetOpen(true)
-                }}
+                onClick={() => detail.show(video)}
                 className="cursor-default max-md:h-14"
               >
-                <TableCell onClick={(event) => event.stopPropagation()}>
-                  <Checkbox
-                    aria-label={`Select ${video.title}`}
-                    checked={selection.isSelected(video.videoId)}
-                    onCheckedChange={(checked) => selection.toggle(video.videoId, checked === true)}
-                  />
-                </TableCell>
+                <SelectRowCell selection={selection} id={video.videoId} label={video.title} />
                 <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
                   {video.position}
                 </TableCell>
@@ -303,8 +267,8 @@ function YouTubePlaylist() {
         <DetailPanel
           title="Video"
           meta={`${active.position} of ${formatCount(videos.length)}`}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
+          open={detail.open}
+          onOpenChange={detail.setOpen}
           footer={
             <>
               <Button disabled={search.isPending} onClick={() => searchOnApple([active])}>
