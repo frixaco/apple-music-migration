@@ -17,7 +17,11 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
 import { formatCount, plural } from '@/lib/format'
@@ -61,7 +65,9 @@ export function AddToAppleMenu({
   )
   const toggle = (id: string) =>
     setSelected((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
     )
 
   return (
@@ -74,7 +80,10 @@ export function AddToAppleMenu({
               <CommandEmpty>No Apple Music playlists</CommandEmpty>
               <CommandGroup heading={`Add ${plural(count, noun)} to`}>
                 {targets.map((playlist) => (
-                  <CommandItem key={playlist.id} onSelect={() => toggle(playlist.id)}>
+                  <CommandItem
+                    key={playlist.id}
+                    onSelect={() => toggle(playlist.id)}
+                  >
                     <Checkbox
                       checked={selected.includes(playlist.id)}
                       tabIndex={-1}
@@ -148,7 +157,9 @@ export function MoveMenu({
   const [targetKey, setTargetKey] = useState('')
   const [removeFromSource, setRemoveFromSource] = useState(true)
   const { data: playlists = [] } = useQuery(playlistsQuery)
-  const target = playlists.find((playlist) => playlistKey(playlist) === targetKey)
+  const target = playlists.find(
+    (playlist) => playlistKey(playlist) === targetKey,
+  )
   const groups = services.map((service) => ({
     service,
     items: playlists.filter(
@@ -165,8 +176,14 @@ export function MoveMenu({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
         <Command>
-          <CommandInput placeholder={`Move ${videos} from ${sourceTitle} to…`} />
-          <RadioGroup value={targetKey} onValueChange={setTargetKey} className="gap-0">
+          <CommandInput
+            placeholder={`Move ${videos} from ${sourceTitle} to…`}
+          />
+          <RadioGroup
+            value={targetKey}
+            onValueChange={setTargetKey}
+            className="gap-0"
+          >
             <CommandList>
               <CommandEmpty>No playlists</CommandEmpty>
               {groups.map(({ service, items }) => (

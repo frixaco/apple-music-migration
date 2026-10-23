@@ -10,20 +10,22 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { sessionQuery } from '@/lib/queries'
 import appCss from '../styles.css?url'
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  beforeLoad: async ({ context }) => ({
-    session: await context.queryClient.fetchQuery(sessionQuery),
-  }),
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Migrator' },
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
-  shellComponent: RootDocument,
-})
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+  {
+    beforeLoad: async ({ context }) => ({
+      session: await context.queryClient.fetchQuery(sessionQuery),
+    }),
+    head: () => ({
+      meta: [
+        { charSet: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { title: 'Migrator' },
+      ],
+      links: [{ rel: 'stylesheet', href: appCss }],
+    }),
+    shellComponent: RootDocument,
+  },
+)
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (

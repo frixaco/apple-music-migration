@@ -15,7 +15,11 @@ import {
 } from '@/components/list-layout'
 import { AddToAppleMenu } from '@/components/playlist-menus'
 import { Button } from '@/components/ui/button'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { Separator } from '@/components/ui/separator'
 import {
   Table,
@@ -28,7 +32,13 @@ import {
 import { addSongs, removeFavorites } from '@/functions/playlists'
 import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
-import { formatCount, formatDifference, formatDuration, plural, timeAgo } from '@/lib/format'
+import {
+  formatCount,
+  formatDifference,
+  formatDuration,
+  plural,
+  timeAgo,
+} from '@/lib/format'
 import { connectionsQuery, playlistsQuery, songsQuery } from '@/lib/queries'
 import type { Song } from '@/lib/types'
 import { youtubeVideoUrl } from '@/lib/youtube'
@@ -41,21 +51,29 @@ export const Route = createFileRoute('/_app/apple/$playlistId')({
 
 function ApplePlaylist() {
   const { playlistId } = Route.useParams()
-  const { data: songs, dataUpdatedAt } = useSuspenseQuery(songsQuery(playlistId))
+  const { data: songs, dataUpdatedAt } = useSuspenseQuery(
+    songsQuery(playlistId),
+  )
   const { data: playlists = [] } = useQuery(playlistsQuery)
   const { data: connections } = useQuery(connectionsQuery)
-  const playlist = playlists.find((item) => item.service === 'apple' && item.id === playlistId)
+  const playlist = playlists.find(
+    (item) => item.service === 'apple' && item.id === playlistId,
+  )
 
   const [text, setText] = useState('')
   const visible = useMemo(() => {
     const needle = text.trim().toLowerCase()
     return needle
       ? songs.filter((song) =>
-          `${song.name} ${song.artist} ${song.album}`.toLowerCase().includes(needle),
+          `${song.name} ${song.artist} ${song.album}`
+            .toLowerCase()
+            .includes(needle),
         )
       : songs
   }, [songs, text])
-  const selection = useSelection(useMemo(() => visible.map((song) => song.id), [visible]))
+  const selection = useSelection(
+    useMemo(() => visible.map((song) => song.id), [visible]),
+  )
   const selected = songs.filter((song) => selection.isSelected(song.id))
 
   const detail = useActiveRow(songs, visible, (song) => song.id)
@@ -63,7 +81,10 @@ function ApplePlaylist() {
 
   const add = useMutation({
     mutationFn: addSongs,
-    meta: { invalidates: [['songs'], ['playlists']], success: 'Added to Apple Music' },
+    meta: {
+      invalidates: [['songs'], ['playlists']],
+      success: 'Added to Apple Music',
+    },
     onSuccess: () => selection.clear(),
   })
   const remove = useMutation({
@@ -76,7 +97,10 @@ function ApplePlaylist() {
   })
   const addTo = (items: Song[]) => (playlistIds: string[]) =>
     add.mutate({
-      data: { catalogIds: items.flatMap((song) => song.catalogId ?? []), playlistIds },
+      data: {
+        catalogIds: items.flatMap((song) => song.catalogId ?? []),
+        playlistIds,
+      },
     })
   const activeUrl =
     active?.catalogId && connections?.apple
@@ -112,7 +136,9 @@ function ApplePlaylist() {
                 description="Their favourite rating is cleared. They stay in your library and other playlists."
                 confirmLabel="Remove"
                 onConfirm={() =>
-                  remove.mutate({ data: { librarySongIds: selected.map((song) => song.id) } })
+                  remove.mutate({
+                    data: { librarySongIds: selected.map((song) => song.id) },
+                  })
                 }
               >
                 Remove from Favourite Songs
@@ -128,7 +154,9 @@ function ApplePlaylist() {
               <TableHead>Song</TableHead>
               <TableHead className="w-52 max-md:hidden">Artist</TableHead>
               <TableHead className="w-52 max-lg:hidden">Album</TableHead>
-              <TableHead className="w-14 text-right max-md:hidden">Length</TableHead>
+              <TableHead className="w-14 text-right max-md:hidden">
+                Length
+              </TableHead>
               <TableHead className="w-36 max-lg:hidden">From</TableHead>
             </TableRow>
           </TableHeader>
@@ -136,18 +164,26 @@ function ApplePlaylist() {
             {visible.map((song) => (
               <TableRow
                 key={song.id}
-                data-state={selection.isSelected(song.id) ? 'selected' : undefined}
+                data-state={
+                  selection.isSelected(song.id) ? 'selected' : undefined
+                }
                 data-active={song.id === active?.id}
                 onClick={() => detail.show(song)}
                 className="h-9 cursor-default"
               >
-                <SelectRowCell selection={selection} id={song.id} label={song.name} />
+                <SelectRowCell
+                  selection={selection}
+                  id={song.id}
+                  label={song.name}
+                />
                 <TableCell className="px-0">
                   <Artwork song={song} />
                 </TableCell>
                 <TableCell className="max-w-0">
                   <div className="truncate">{song.name}</div>
-                  <div className="truncate text-[11px] text-subtle md:hidden">{song.artist}</div>
+                  <div className="truncate text-[11px] text-subtle md:hidden">
+                    {song.artist}
+                  </div>
                 </TableCell>
                 <TableCell className="max-w-0 truncate text-muted-foreground max-md:hidden">
                   {song.artist}
@@ -194,7 +230,11 @@ function ApplePlaylist() {
         >
           <div className="flex gap-3 p-4">
             {active.artworkUrl && (
-              <img src={active.artworkUrl} alt="" className="size-28 shrink-0 rounded-md" />
+              <img
+                src={active.artworkUrl}
+                alt=""
+                className="size-28 shrink-0 rounded-md"
+              />
             )}
             <div className="flex min-w-0 flex-col">
               <h3 className="text-[15px] font-medium">{active.name}</h3>
@@ -203,7 +243,10 @@ function ApplePlaylist() {
                 {active.album} · {formatDuration(active.durationSeconds)}
               </div>
               {activeUrl && (
-                <ExternalLink href={activeUrl} className="mt-auto justify-start">
+                <ExternalLink
+                  href={activeUrl}
+                  className="mt-auto justify-start"
+                >
                   Open in Apple Music
                 </ExternalLink>
               )}
@@ -213,7 +256,9 @@ function ApplePlaylist() {
           <dl className="p-4">
             <DetailRow label="Playlist">{playlist?.title}</DetailRow>
             <DetailRow label="Catalog ID">
-              <span className="font-mono text-[11px]">{active.catalogId ?? 'Not in catalog'}</span>
+              <span className="font-mono text-[11px]">
+                {active.catalogId ?? 'Not in catalog'}
+              </span>
             </DetailRow>
           </dl>
           {active.source && (
@@ -232,9 +277,13 @@ function ApplePlaylist() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate">{active.source.title}</div>
                     <div className="font-mono text-[11px] text-subtle">
-                      {active.source.sourcePlaylistTitle} #{active.source.position} ·{' '}
+                      {active.source.sourcePlaylistTitle} #
+                      {active.source.position} ·{' '}
                       {formatDuration(active.source.durationSeconds)}{' '}
-                      {formatDifference(active.durationSeconds, active.source.durationSeconds)}
+                      {formatDifference(
+                        active.durationSeconds,
+                        active.source.durationSeconds,
+                      )}
                     </div>
                     <ExternalLink href={youtubeVideoUrl(active.source.videoId)}>
                       YouTube
@@ -256,7 +305,12 @@ function Artwork({ song }: { song: Song }) {
   return (
     <HoverCard openDelay={300} closeDelay={0}>
       <HoverCardTrigger asChild>
-        <img src={song.artworkUrl} alt="" loading="lazy" className="size-6 rounded-sm" />
+        <img
+          src={song.artworkUrl}
+          alt=""
+          loading="lazy"
+          className="size-6 rounded-sm"
+        />
       </HoverCardTrigger>
       <HoverCardContent side="right" className="w-28">
         <img src={song.artworkUrl} alt="" className="size-[104px] rounded-md" />

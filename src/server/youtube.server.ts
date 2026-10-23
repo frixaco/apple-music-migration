@@ -95,16 +95,23 @@ export class YouTubeClient {
       channel: snippet.videoOwnerChannelTitle ?? '',
       durationSeconds: durations.get(snippet.resourceId.videoId) ?? null,
       thumbnailUrl:
-        snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? null,
+        snippet.thumbnails?.high?.url ??
+        snippet.thumbnails?.medium?.url ??
+        null,
       description: snippet.description,
       addedAt: snippet.publishedAt,
     }))
   }
 
   async addVideo(playlistId: string, videoId: string): Promise<void> {
-    await this.request('POST', '/playlistItems', { part: 'snippet' }, {
-      snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } },
-    })
+    await this.request(
+      'POST',
+      '/playlistItems',
+      { part: 'snippet' },
+      {
+        snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } },
+      },
+    )
   }
 
   async removePlaylistItem(playlistItemId: string): Promise<void> {
@@ -191,7 +198,9 @@ export class YouTubeClient {
     const text = await response.text()
 
     if (!response.ok) {
-      throw new Error(`YouTube API ${method} ${path} failed: ${response.status} ${text}`)
+      throw new Error(
+        `YouTube API ${method} ${path} failed: ${response.status} ${text}`,
+      )
     }
 
     return (text ? JSON.parse(text) : undefined) as T
@@ -201,9 +210,9 @@ export class YouTubeClient {
 /** Converts an ISO 8601 duration such as PT1H2M3S to seconds. */
 function parseIsoDuration(value: string): number {
   const match = value.match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
-  const [days = 0, hours = 0, minutes = 0, seconds = 0] = (match?.slice(1) ?? []).map(
-    (part: string | undefined) => (part ? Number(part) : 0),
-  )
+  const [days = 0, hours = 0, minutes = 0, seconds = 0] = (
+    match?.slice(1) ?? []
+  ).map((part: string | undefined) => (part ? Number(part) : 0))
 
   return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
 }

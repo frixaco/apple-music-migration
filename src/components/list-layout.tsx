@@ -2,7 +2,11 @@ import { SearchIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { TableCell, TableHead } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { Selection } from '@/hooks/use-selection'
@@ -132,7 +136,13 @@ export function SelectRowCell({
 }
 
 /** The status line under a list. */
-export function ListFooter({ start, end }: { start: ReactNode; end?: ReactNode }) {
+export function ListFooter({
+  start,
+  end,
+}: {
+  start: ReactNode
+  end?: ReactNode
+}) {
   return (
     <div className="flex h-7 shrink-0 items-center justify-between gap-4 border-t px-3 text-[11px] text-subtle">
       <span className="truncate">{start}</span>

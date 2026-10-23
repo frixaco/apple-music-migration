@@ -6,7 +6,9 @@ export const serviceName: Record<Service, string> = {
 }
 
 /** Identifies a playlist across both services. */
-export function playlistKey(playlist: Pick<Playlist, 'service' | 'id'>): string {
+export function playlistKey(
+  playlist: Pick<Playlist, 'service' | 'id'>,
+): string {
   return `${playlist.service}:${playlist.id}`
 }
 
@@ -18,6 +20,12 @@ export function canAddTo(playlist: Playlist): boolean {
 /** Link options for a playlist's page. */
 export function playlistRoute(playlist: Pick<Playlist, 'service' | 'id'>) {
   return playlist.service === 'youtube'
-    ? ({ to: '/youtube/$playlistId', params: { playlistId: playlist.id } } as const)
-    : ({ to: '/apple/$playlistId', params: { playlistId: playlist.id } } as const)
+    ? ({
+        to: '/youtube/$playlistId',
+        params: { playlistId: playlist.id },
+      } as const)
+    : ({
+        to: '/apple/$playlistId',
+        params: { playlistId: playlist.id },
+      } as const)
 }

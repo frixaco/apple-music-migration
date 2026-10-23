@@ -50,16 +50,26 @@ export function DetailPanel({
         <h2 className="font-medium">{title}</h2>
         <span className="font-mono text-[11px] text-subtle">{meta}</span>
       </div>
-      <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block">{children}</ScrollArea>
+      <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block">
+        {children}
+      </ScrollArea>
       {footer && (
-        <div className="flex shrink-0 items-center gap-2 border-t px-4 py-3">{footer}</div>
+        <div className="flex shrink-0 items-center gap-2 border-t px-4 py-3">
+          {footer}
+        </div>
       )}
     </aside>
   )
 }
 
 /** A label and value row in a detail panel. */
-export function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+export function DetailRow({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
   return (
     <div className="grid grid-cols-[100px_1fr] gap-2 py-1">
       <dt className="text-subtle">{label}</dt>

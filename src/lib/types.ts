@@ -65,7 +65,10 @@ export type Candidate = {
 export type MatchStatus = 'searching' | 'found' | 'check' | 'not_found' | 'done'
 
 /** A video in a match run and its Apple Music options, as stored in the `match` table. */
-export type Match = Omit<typeof match.$inferSelect, 'userId' | 'runId' | 'updatedAt'>
+export type Match = Omit<
+  typeof match.$inferSelect,
+  'userId' | 'runId' | 'updatedAt'
+>
 
 export type MatchRun = {
   id: string

@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
 import { z } from 'zod'
 import { Brand } from '@/components/brand'
 import { Button } from '@/components/ui/button'
@@ -11,7 +16,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field'
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { authClient } from '@/lib/auth-client'
@@ -38,7 +49,11 @@ function SignIn() {
       const email = String(form.get('email'))
       const password = String(form.get('password'))
       const { error } = isSignUp
-        ? await authClient.signUp.email({ name: String(form.get('name')), email, password })
+        ? await authClient.signUp.email({
+            name: String(form.get('name')),
+            email,
+            password,
+          })
         : await authClient.signIn.email({ email, password })
       if (error) throw new Error(error.message ?? 'Could not sign in.')
     },
@@ -48,7 +63,8 @@ function SignIn() {
     },
   })
   const google = useMutation({
-    mutationFn: () => authClient.signIn.social({ provider: 'google', callbackURL: '/' }),
+    mutationFn: () =>
+      authClient.signIn.social({ provider: 'google', callbackURL: '/' }),
   })
 
   return (
@@ -87,7 +103,12 @@ function SignIn() {
                 {isSignUp && (
                   <Field>
                     <FieldLabel htmlFor="name">Name</FieldLabel>
-                    <Input id="name" name="name" placeholder="Your name" required />
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="Your name"
+                      required
+                    />
                   </Field>
                 )}
                 <Field>
@@ -107,8 +128,12 @@ function SignIn() {
                     id="password"
                     name="password"
                     type="password"
-                    placeholder={isSignUp ? 'At least 10 characters' : undefined}
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                    placeholder={
+                      isSignUp ? 'At least 10 characters' : undefined
+                    }
+                    autoComplete={
+                      isSignUp ? 'new-password' : 'current-password'
+                    }
                     minLength={isSignUp ? 10 : undefined}
                     required
                   />
@@ -127,8 +152,15 @@ function SignIn() {
           </CardContent>
           <CardFooter className="justify-center border-t px-4 pt-4 text-muted-foreground [.border-t]:pt-4">
             {isSignUp ? 'Have an account?' : 'No account?'}
-            <Button variant="link" className="h-auto px-1 text-foreground" asChild>
-              <Link to="/sign-in" search={{ mode: isSignUp ? 'sign-in' : 'sign-up' }}>
+            <Button
+              variant="link"
+              className="h-auto px-1 text-foreground"
+              asChild
+            >
+              <Link
+                to="/sign-in"
+                search={{ mode: isSignUp ? 'sign-in' : 'sign-up' }}
+              >
                 {isSignUp ? 'Sign in' : 'Create one'}
               </Link>
             </Button>

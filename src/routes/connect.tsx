@@ -29,14 +29,19 @@ import { connectApple, disconnectApple } from '@/functions/account'
 import { connectYouTube } from '@/lib/auth-client'
 import { formatCount } from '@/lib/format'
 import { configureMusicKit } from '@/lib/musickit'
-import { connectionsQuery, developerTokenQuery, playlistsQuery } from '@/lib/queries'
+import {
+  connectionsQuery,
+  developerTokenQuery,
+  playlistsQuery,
+} from '@/lib/queries'
 import type { Service } from '@/lib/types'
 
 export const Route = createFileRoute('/connect')({
   beforeLoad: ({ context }) => {
     if (!context.session) throw redirect({ to: '/sign-in' })
   },
-  loader: ({ context }) => context.queryClient.ensureQueryData(connectionsQuery),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(connectionsQuery),
   component: Connect,
 })
 
@@ -54,7 +59,10 @@ function Connect() {
       const musicUserToken = await musicKit.data!.authorize()
       await connectApple({ data: { musicUserToken } })
     },
-    meta: { invalidates: [['connections'], ['playlists']], success: 'Apple Music connected' },
+    meta: {
+      invalidates: [['connections'], ['playlists']],
+      success: 'Apple Music connected',
+    },
   })
   const disconnect = useMutation({
     mutationFn: () => disconnectApple(),
@@ -72,13 +80,17 @@ function Connect() {
           <CardHeader className="border-b px-4 py-4">
             <CardTitle>Connect your accounts</CardTitle>
             <CardDescription>
-              Migrator reads your playlists and only changes them when you apply a decision.
+              Migrator reads your playlists and only changes them when you apply
+              a decision.
             </CardDescription>
           </CardHeader>
           <ConnectionSection
             service="youtube"
             title="YouTube"
-            detail={connections?.youtube?.email ?? 'Google account with YouTube access'}
+            detail={
+              connections?.youtube?.email ??
+              'Google account with YouTube access'
+            }
             connected={Boolean(connections?.youtube)}
             action={
               <Button
@@ -172,7 +184,8 @@ function ConnectionSection({
 /** A read-only list showing the playlists loaded from a service. */
 function PlaylistPreview({ service }: { service: Service }) {
   const { data, isPending, error } = useQuery(playlistsQuery)
-  const playlists = data?.filter((playlist) => playlist.service === service) ?? []
+  const playlists =
+    data?.filter((playlist) => playlist.service === service) ?? []
 
   return (
     <div>

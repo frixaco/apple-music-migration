@@ -1,4 +1,9 @@
-import { useIsFetching, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useIsFetching,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ChevronDownIcon, PinIcon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import { useState } from 'react'
@@ -15,10 +20,19 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { setPinned } from '@/functions/playlists'
 import { formatCount } from '@/lib/format'
-import { canAddTo, playlistKey, playlistRoute, serviceName } from '@/lib/playlist'
+import {
+  canAddTo,
+  playlistKey,
+  playlistRoute,
+  serviceName,
+} from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 import type { Playlist, Service } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -62,10 +76,15 @@ export function PlaylistPicker({
               <ChevronDownIcon className="text-subtle" />
             </Button>
           ) : (
-            <Button variant="secondary" className="min-w-0 flex-1 justify-start">
+            <Button
+              variant="secondary"
+              className="min-w-0 flex-1 justify-start"
+            >
               {current && <ServiceTag service={current.service} />}
               <span className="truncate">{current?.title ?? 'Playlists'}</span>
-              {current && <Badge variant="count">{formatCount(current.count)}</Badge>}
+              {current && (
+                <Badge variant="count">{formatCount(current.count)}</Badge>
+              )}
               <ChevronDownIcon className="ml-auto text-subtle" />
             </Button>
           )}
@@ -123,11 +142,23 @@ export function PlaylistPicker({
                 <CommandList className="max-h-[60svh]">
                   <CommandEmpty>No playlists</CommandEmpty>
                   {[
-                    { heading: 'Pinned', items: playlists.filter((p) => p.pinned) },
-                    { heading: serviceName.youtube, items: byService('youtube').filter((p) => !p.pinned) },
-                    { heading: serviceName.apple, items: byService('apple').filter((p) => !p.pinned) },
+                    {
+                      heading: 'Pinned',
+                      items: playlists.filter((p) => p.pinned),
+                    },
+                    {
+                      heading: serviceName.youtube,
+                      items: byService('youtube').filter((p) => !p.pinned),
+                    },
+                    {
+                      heading: serviceName.apple,
+                      items: byService('apple').filter((p) => !p.pinned),
+                    },
                   ].map(({ heading, items }) => (
-                    <CommandGroup key={heading} heading={`${heading} · ${items.length}`}>
+                    <CommandGroup
+                      key={heading}
+                      heading={`${heading} · ${items.length}`}
+                    >
                       {items.map((playlist) => (
                         <PlaylistItem
                           key={playlistKey(playlist)}
@@ -187,7 +218,9 @@ function PlaylistItem({
       className="group/playlist"
     >
       <PlaylistLabel playlist={playlist}>
-        {!canAddTo(playlist) && <span className="text-[11px] text-subtle">read-only</span>}
+        {!canAddTo(playlist) && (
+          <span className="text-[11px] text-subtle">read-only</span>
+        )}
       </PlaylistLabel>
       <Button
         variant="ghost"
@@ -196,7 +229,9 @@ function PlaylistItem({
         aria-pressed={playlist.pinned}
         className={cn(
           'text-subtle hover:text-foreground',
-          playlist.pinned ? 'text-foreground' : 'opacity-0 group-data-[selected=true]/playlist:opacity-100',
+          playlist.pinned
+            ? 'text-foreground'
+            : 'opacity-0 group-data-[selected=true]/playlist:opacity-100',
         )}
         onClick={(event) => {
           event.stopPropagation()
@@ -224,7 +259,9 @@ function RefreshButton() {
       variant="ghost"
       size="sm"
       disabled={fetching}
-      onClick={() => queryClient.invalidateQueries({ queryKey: playlistsQuery.queryKey })}
+      onClick={() =>
+        queryClient.invalidateQueries({ queryKey: playlistsQuery.queryKey })
+      }
     >
       <RefreshCwIcon className={cn(fetching && 'animate-spin')} />
       Refresh

@@ -46,7 +46,9 @@ export function NewPlaylistDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>New {service && serviceName[service]} playlist</DialogTitle>
+            <DialogTitle>
+              New {service && serviceName[service]} playlist
+            </DialogTitle>
             <DialogDescription>
               {service === 'youtube'
                 ? 'Created as a private playlist.'

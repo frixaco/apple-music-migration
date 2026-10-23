@@ -1,6 +1,11 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowUpRightIcon, ChevronDownIcon, SearchIcon, SearchXIcon } from 'lucide-react'
+import {
+  ArrowUpRightIcon,
+  ChevronDownIcon,
+  SearchIcon,
+  SearchXIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
@@ -59,7 +64,10 @@ const filters = {
   open: { label: 'Open', test: (item: Match) => item.status !== 'done' },
   found: { label: 'Found', test: (item: Match) => item.status === 'found' },
   check: { label: 'Check', test: (item: Match) => item.status === 'check' },
-  missing: { label: 'Not found', test: (item: Match) => item.status === 'not_found' },
+  missing: {
+    label: 'Not found',
+    test: (item: Match) => item.status === 'not_found',
+  },
   done: { label: 'Done', test: (item: Match) => item.status === 'done' },
 } satisfies Record<string, { label: string; test: (item: Match) => boolean }>
 
@@ -69,8 +77,9 @@ const invalidates = [['run'], ['videos'], ['songs'], ['playlists']]
 
 function bestOption(item: Match) {
   return (
-    item.candidates.find((candidate) => candidate.id === item.selectedCandidateId) ??
-    item.candidates.at(0)
+    item.candidates.find(
+      (candidate) => candidate.id === item.selectedCandidateId,
+    ) ?? item.candidates.at(0)
   )
 }
 
@@ -106,14 +115,20 @@ function OpenRun({ run }: { run: MatchRun }) {
     () => run.matches.filter(filters[filter].test),
     [run.matches, filter],
   )
-  const selection = useSelection(useMemo(() => visible.map((item) => item.videoId), [visible]))
-  const selected = run.matches.filter((item) => selection.isSelected(item.videoId))
+  const selection = useSelection(
+    useMemo(() => visible.map((item) => item.videoId), [visible]),
+  )
+  const selected = run.matches.filter((item) =>
+    selection.isSelected(item.videoId),
+  )
   const selectedIds = selected.map((item) => item.videoId)
 
   const detail = useActiveRow(run.matches, visible, (item) => item.videoId)
   const active = detail.active
 
-  const searched = run.matches.filter((item) => item.status !== 'searching').length
+  const searched = run.matches.filter(
+    (item) => item.status !== 'searching',
+  ).length
   const done = run.matches.filter((item) => item.status === 'done')
 
   const add = useMutation({
@@ -172,7 +187,9 @@ function OpenRun({ run }: { run: MatchRun }) {
               noun="song"
               defaultSelected={run.targetPlaylistIds}
               pending={add.isPending}
-              onAdd={(playlistIds) => add.mutate({ data: { videoIds: selectedIds, playlistIds } })}
+              onAdd={(playlistIds) =>
+                add.mutate({ data: { videoIds: selectedIds, playlistIds } })
+              }
             >
               <Button
                 variant={filter === 'missing' ? 'outline' : 'default'}
@@ -207,7 +224,11 @@ function OpenRun({ run }: { run: MatchRun }) {
                 <ChevronDownIcon />
               </Button>
             </MoveMenu>
-            <Button variant="ghost" disabled={selected.length === 0} onClick={selection.clear}>
+            <Button
+              variant="ghost"
+              disabled={selected.length === 0}
+              onClick={selection.clear}
+            >
               Clear
             </Button>
           </ListActions>
@@ -219,8 +240,12 @@ function OpenRun({ run }: { run: MatchRun }) {
               <TableHead className="w-10 text-right max-md:hidden">#</TableHead>
               <TableHead>YouTube title</TableHead>
               <TableHead className="w-80 max-lg:hidden">Best option</TableHead>
-              <TableHead className="w-14 text-right max-md:hidden">Conf.</TableHead>
-              <TableHead className="w-12 text-right max-md:hidden">Opt.</TableHead>
+              <TableHead className="w-14 text-right max-md:hidden">
+                Conf.
+              </TableHead>
+              <TableHead className="w-12 text-right max-md:hidden">
+                Opt.
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,12 +254,18 @@ function OpenRun({ run }: { run: MatchRun }) {
               return (
                 <TableRow
                   key={item.videoId}
-                  data-state={selection.isSelected(item.videoId) ? 'selected' : undefined}
+                  data-state={
+                    selection.isSelected(item.videoId) ? 'selected' : undefined
+                  }
                   data-active={item.videoId === active?.videoId}
                   onClick={() => detail.show(item)}
                   className="cursor-default max-md:h-12"
                 >
-                  <SelectRowCell selection={selection} id={item.videoId} label={item.title} />
+                  <SelectRowCell
+                    selection={selection}
+                    id={item.videoId}
+                    label={item.title}
+                  />
                   <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
                     {item.position}
                   </TableCell>
@@ -294,9 +325,18 @@ function MatchOptions({
   onOpenChange: (open: boolean) => void
 }) {
   const [choice, setChoice] = useState(bestOption(item)?.id ?? '')
-  const select = useMutation({ mutationFn: selectCandidate, meta: { invalidates: [['run']] } })
-  const reject = useMutation({ mutationFn: markNotFound, meta: { invalidates: [['run']] } })
-  const research = useMutation({ mutationFn: searchAgain, meta: { invalidates: [['run']] } })
+  const select = useMutation({
+    mutationFn: selectCandidate,
+    meta: { invalidates: [['run']] },
+  })
+  const reject = useMutation({
+    mutationFn: markNotFound,
+    meta: { invalidates: [['run']] },
+  })
+  const research = useMutation({
+    mutationFn: searchAgain,
+    meta: { invalidates: [['run']] },
+  })
   const weak = item.status === 'not_found'
 
   return (
@@ -313,7 +353,9 @@ function MatchOptions({
             <Button
               disabled={!choice || select.isPending}
               onClick={() =>
-                select.mutate({ data: { videoId: item.videoId, candidateId: choice } })
+                select.mutate({
+                  data: { videoId: item.videoId, candidateId: choice },
+                })
               }
             >
               Use this option
@@ -321,7 +363,9 @@ function MatchOptions({
             <Button
               variant="outline"
               disabled={weak || reject.isPending}
-              onClick={() => reject.mutate({ data: { videoIds: [item.videoId] } })}
+              onClick={() =>
+                reject.mutate({ data: { videoIds: [item.videoId] } })
+              }
             >
               {weak ? 'Marked not found' : 'Mark not found'}
             </Button>
@@ -343,7 +387,9 @@ function MatchOptions({
             <span className="truncate">
               {item.channel} · {formatDuration(item.durationSeconds)}
             </span>
-            <ExternalLink href={youtubeVideoUrl(item.videoId)}>YouTube</ExternalLink>
+            <ExternalLink href={youtubeVideoUrl(item.videoId)}>
+              YouTube
+            </ExternalLink>
           </div>
         </div>
       </div>
@@ -355,7 +401,12 @@ function MatchOptions({
           research.mutate({ data: { videoId: item.videoId, term } })
         }}
       >
-        <Input name="term" defaultValue={item.query} aria-label="Apple Music search" required />
+        <Input
+          name="term"
+          defaultValue={item.query}
+          aria-label="Apple Music search"
+          required
+        />
         <Button type="submit" variant="outline" disabled={research.isPending}>
           {research.isPending && <Spinner />}
           {weak ? 'Search again' : 'Search'}
@@ -372,18 +423,25 @@ function MatchOptions({
               <SearchXIcon />
             </EmptyMedia>
             <EmptyTitle>No options</EmptyTitle>
-            <EmptyDescription>Try a different search, or move it to a YouTube playlist.</EmptyDescription>
+            <EmptyDescription>
+              Try a different search, or move it to a YouTube playlist.
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <>
           <div className="flex justify-between px-4 py-2 text-[11px] text-subtle">
             <span>
-              {item.candidates.length} {weak ? 'weak options · none look right' : 'options · pick one'}
+              {item.candidates.length}{' '}
+              {weak ? 'weak options · none look right' : 'options · pick one'}
             </span>
             <span>Open each link to verify</span>
           </div>
-          <RadioGroup value={choice} onValueChange={setChoice} className="grid-cols-[minmax(0,1fr)] gap-0 border-t">
+          <RadioGroup
+            value={choice}
+            onValueChange={setChoice}
+            className="grid-cols-[minmax(0,1fr)] gap-0 border-t"
+          >
             {item.candidates.map((candidate) => (
               <Label
                 key={candidate.id}
@@ -391,7 +449,11 @@ function MatchOptions({
               >
                 <RadioGroupItem value={candidate.id} />
                 {candidate.artworkUrl && (
-                  <img src={candidate.artworkUrl} alt="" className="size-10 shrink-0 rounded-sm" />
+                  <img
+                    src={candidate.artworkUrl}
+                    alt=""
+                    className="size-10 shrink-0 rounded-sm"
+                  />
                 )}
                 <div className="min-w-0 flex-1 leading-snug">
                   <div className="truncate">{candidate.name}</div>
@@ -400,8 +462,11 @@ function MatchOptions({
                   </div>
                   <div className="font-mono text-[11px] text-subtle">
                     {formatDuration(candidate.durationSeconds)} ·{' '}
-                    {formatDifference(candidate.durationSeconds, item.durationSeconds)} · score{' '}
-                    {candidate.score.toFixed(2)}
+                    {formatDifference(
+                      candidate.durationSeconds,
+                      item.durationSeconds,
+                    )}{' '}
+                    · score {candidate.score.toFixed(2)}
                   </div>
                 </div>
                 {candidate.url && (

@@ -10,6 +10,21 @@ Workspace for migrating the public YouTube playlist to Apple Music.
 - Target Apple Music destination: Favorite Songs
 - Preserve source playlist order: yes
 
+## Web app (Migrator)
+
+TanStack Start + React app for moving videos between YouTube playlists and Apple Music.
+Routes are in `src/routes`, server functions in `src/functions`, server-only code in
+`src/server/*.server.ts`, and shadcn components in `src/components/ui`. The Bun scripts
+below share matching and the Apple Music client with it through `src/lib`.
+
+```sh
+bun run dev          # http://localhost:3000; needs Postgres at DATABASE_URL (.env)
+bun run db:migrate   # apply drizzle/ migrations
+bun run typecheck && bun run lint && bun run build
+```
+
+Deployed on Railway (project `migrator`, service `web`); see `.railway/railway.ts`.
+
 ## Scripts
 
 ```sh

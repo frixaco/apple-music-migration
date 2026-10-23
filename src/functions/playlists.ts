@@ -31,7 +31,9 @@ export const listPlaylists = createServerFn()
       findAppleConnection(userId),
     ])
     const pinned = new Set(
-      pins.map((pin) => playlistKey({ service: pin.service, id: pin.playlistId })),
+      pins.map((pin) =>
+        playlistKey({ service: pin.service, id: pin.playlistId }),
+      ),
     )
 
     const youtubePlaylists = async (): Promise<Playlist[]> => {
@@ -42,7 +44,9 @@ export const listPlaylists = createServerFn()
         service: 'youtube',
         canEdit: true,
         isFavorites: false,
-        pinned: pinned.has(playlistKey({ service: 'youtube', id: playlist.id })),
+        pinned: pinned.has(
+          playlistKey({ service: 'youtube', id: playlist.id }),
+        ),
       }))
     }
 
@@ -58,7 +62,9 @@ export const listPlaylists = createServerFn()
           count: await client.getLibraryPlaylistTrackCount(playlist.id),
           canEdit: playlist.attributes?.canEdit ?? false,
           isFavorites: isFavoriteSongsPlaylist(playlist),
-          pinned: pinned.has(playlistKey({ service: 'apple', id: playlist.id })),
+          pinned: pinned.has(
+            playlistKey({ service: 'apple', id: playlist.id }),
+          ),
         })),
       )
     }
@@ -68,11 +74,13 @@ export const listPlaylists = createServerFn()
 
 export const setPinned = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(
-    z.object({ service, playlistId: z.string(), pinned: z.boolean() }),
-  )
+  .validator(z.object({ service, playlistId: z.string(), pinned: z.boolean() }))
   .handler(async ({ data, context }) => {
-    const key = { userId: context.user.id, service: data.service, playlistId: data.playlistId }
+    const key = {
+      userId: context.user.id,
+      service: data.service,
+      playlistId: data.playlistId,
+    }
 
     if (data.pinned) {
       await db.insert(pinnedPlaylist).values(key).onConflictDoNothing()
@@ -151,7 +159,9 @@ export const listSongs = createServerFn()
           ),
         })
       : []
-    const sourceBySong = new Map(sources.map((item) => [item.appleSongId, item]))
+    const sourceBySong = new Map(
+      sources.map((item) => [item.appleSongId, item]),
+    )
 
     return tracks.map((track) => {
       const attributes = track.attributes ?? {}
@@ -185,14 +195,20 @@ export const sendVideos = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(
     z.object({
-      items: z.array(z.object({ videoId: z.string(), playlistItemId: z.string() })),
+      items: z.array(
+        z.object({ videoId: z.string(), playlistItemId: z.string() }),
+      ),
       targetPlaylistId: z.string(),
       removeFromSource: z.boolean(),
     }),
   )
   .handler(async ({ data, context }) => {
     const youtube = await youtubeForUser(context.user.id)
-    await youtube.sendVideos(data.targetPlaylistId, data.items, data.removeFromSource)
+    await youtube.sendVideos(
+      data.targetPlaylistId,
+      data.items,
+      data.removeFromSource,
+    )
   })
 
 export const removeVideos = createServerFn({ method: 'POST' })
@@ -215,7 +231,11 @@ export const addSongs = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data, context }) => {
-    await addSongsToPlaylists(context.user.id, data.catalogIds, data.playlistIds)
+    await addSongsToPlaylists(
+      context.user.id,
+      data.catalogIds,
+      data.playlistIds,
+    )
   })
 
 /** Apple Music only allows removing songs from Favourite Songs, by clearing their favourite rating. */

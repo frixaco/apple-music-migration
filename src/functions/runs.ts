@@ -100,7 +100,10 @@ export const startRun = createServerFn({ method: 'POST' })
           })
           .where(eq(matchRun.id, openRun.id))
           .returning()
-      : await db.insert(matchRun).values({ userId, ...runValues }).returning()
+      : await db
+          .insert(matchRun)
+          .values({ userId, ...runValues })
+          .returning()
 
     for (const video of videos) {
       const values = {
@@ -120,7 +123,10 @@ export const startRun = createServerFn({ method: 'POST' })
       await db
         .insert(match)
         .values(values)
-        .onConflictDoUpdate({ target: [match.userId, match.videoId], set: values })
+        .onConflictDoUpdate({
+          target: [match.userId, match.videoId],
+          set: values,
+        })
     }
 
     void processRun(userId, runId)
@@ -132,7 +138,9 @@ export const closeRun = createServerFn({ method: 'POST' })
     await db
       .update(matchRun)
       .set({ closedAt: new Date() })
-      .where(and(eq(matchRun.userId, context.user.id), isNull(matchRun.closedAt)))
+      .where(
+        and(eq(matchRun.userId, context.user.id), isNull(matchRun.closedAt)),
+      )
   })
 
 export const selectCandidate = createServerFn({ method: 'POST' })
@@ -167,7 +175,10 @@ export const searchAgain = createServerFn({ method: 'POST' })
 
     const { client, storefront } = await appleForUser(userId)
     const result = await findCandidates(client, storefront, item, data.term)
-    await updateMatch(userId, [data.videoId], { ...result, selectedCandidateId: null })
+    await updateMatch(userId, [data.videoId], {
+      ...result,
+      selectedCandidateId: null,
+    })
   })
 
 /** Adds each video's chosen song (or best option) to Apple Music playlists and marks it done. */
@@ -183,11 +194,14 @@ export const addToApple = createServerFn({ method: 'POST' })
     const userId = context.user.id
     const run = await requireOpenRun(userId)
 
-    const chosen = (await runMatches(userId, run.id, data.videoIds)).flatMap((item) => {
-      const songId = item.selectedCandidateId ?? item.candidates[0]?.id
-      return songId ? [{ item, songId }] : []
-    })
-    if (chosen.length === 0) throw new Error('None of these videos has an Apple Music option.')
+    const chosen = (await runMatches(userId, run.id, data.videoIds)).flatMap(
+      (item) => {
+        const songId = item.selectedCandidateId ?? item.candidates[0]?.id
+        return songId ? [{ item, songId }] : []
+      },
+    )
+    if (chosen.length === 0)
+      throw new Error('None of these videos has an Apple Music option.')
 
     const playlistNames = await addSongsToPlaylists(
       userId,

@@ -53,7 +53,9 @@ function RunButton() {
   const { data: run } = useQuery(runQuery)
   if (!run) return null
 
-  const searched = run.matches.filter((item) => item.status !== 'searching').length
+  const searched = run.matches.filter(
+    (item) => item.status !== 'searching',
+  ).length
 
   return (
     <Button variant="outline" asChild>

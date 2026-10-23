@@ -143,7 +143,12 @@ export async function processRun(userId: string, runId: string): Promise<void> {
     const worker = async () => {
       for (let item = pending.shift(); item; item = pending.shift()) {
         const result = await findCandidates(client, storefront, item).catch(
-          () => ({ query: '', confidence: 1, status: 'not_found' as const, candidates: [] }),
+          () => ({
+            query: '',
+            confidence: 1,
+            status: 'not_found' as const,
+            candidates: [],
+          }),
         )
         await updateMatch(userId, [item.videoId], {
           ...result,

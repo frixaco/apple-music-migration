@@ -16,7 +16,10 @@ let cachedToken: { token: string; expiresAt: Date } | undefined
 
 /** A signed MusicKit developer token, renewed a day before it expires. */
 export function developerToken(): string {
-  if (!cachedToken || cachedToken.expiresAt.getTime() - Date.now() < 86_400_000) {
+  if (
+    !cachedToken ||
+    cachedToken.expiresAt.getTime() - Date.now() < 86_400_000
+  ) {
     cachedToken = generateDeveloperToken(loadDeveloperTokenConfig())
   }
 
@@ -52,7 +55,10 @@ export async function appleForUser(userId: string) {
 
   return {
     client: appleClient(
-      await symmetricDecrypt({ key: secret(), data: connection.musicUserToken }),
+      await symmetricDecrypt({
+        key: secret(),
+        data: connection.musicUserToken,
+      }),
     ),
     storefront: connection.storefront,
   }
@@ -62,7 +68,10 @@ export function artworkUrl(
   artwork: AppleMusicArtwork | undefined,
   size: number,
 ): string | null {
-  return artwork?.url.replace('{w}', String(size)).replace('{h}', String(size)) ?? null
+  return (
+    artwork?.url.replace('{w}', String(size)).replace('{h}', String(size)) ??
+    null
+  )
 }
 
 /**
@@ -76,7 +85,10 @@ export async function addSongsToPlaylists(
 ) {
   const { client } = await appleForUser(userId)
   const playlists = new Map(
-    (await client.getAllLibraryPlaylists()).map((playlist) => [playlist.id, playlist]),
+    (await client.getAllLibraryPlaylists()).map((playlist) => [
+      playlist.id,
+      playlist,
+    ]),
   )
 
   for (const playlistId of playlistIds) {

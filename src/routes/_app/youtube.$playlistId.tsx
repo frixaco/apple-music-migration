@@ -24,7 +24,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { Separator } from '@/components/ui/separator'
 import {
   Table,
@@ -59,7 +63,10 @@ const filters = {
       video.match?.status === 'check' ||
       video.match?.status === 'done',
   },
-  missing: { label: 'Not found', test: (video: Video) => video.match?.status === 'not_found' },
+  missing: {
+    label: 'Not found',
+    test: (video: Video) => video.match?.status === 'not_found',
+  },
 } satisfies Record<string, { label: string; test: (video: Video) => boolean }>
 
 type Filter = keyof typeof filters
@@ -83,9 +90,13 @@ function appleStatus(video: Video): string {
 function YouTubePlaylist() {
   const { playlistId } = Route.useParams()
   const navigate = useNavigate()
-  const { data: videos, dataUpdatedAt } = useSuspenseQuery(videosQuery(playlistId))
+  const { data: videos, dataUpdatedAt } = useSuspenseQuery(
+    videosQuery(playlistId),
+  )
   const { data: playlists = [] } = useQuery(playlistsQuery)
-  const playlist = playlists.find((item) => item.service === 'youtube' && item.id === playlistId)
+  const playlist = playlists.find(
+    (item) => item.service === 'youtube' && item.id === playlistId,
+  )
   const title = playlist?.title ?? 'Playlist'
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -95,10 +106,13 @@ function YouTubePlaylist() {
     return videos.filter(
       (video) =>
         filters[filter].test(video) &&
-        (!needle || `${video.title} ${video.channel}`.toLowerCase().includes(needle)),
+        (!needle ||
+          `${video.title} ${video.channel}`.toLowerCase().includes(needle)),
     )
   }, [videos, filter, text])
-  const selection = useSelection(useMemo(() => visible.map((video) => video.videoId), [visible]))
+  const selection = useSelection(
+    useMemo(() => visible.map((video) => video.videoId), [visible]),
+  )
   const selected = videos.filter((video) => selection.isSelected(video.videoId))
 
   const detail = useActiveRow(videos, visible, (video) => video.videoId)
@@ -112,16 +126,26 @@ function YouTubePlaylist() {
   // Both the source and the target playlist change, so every cached video list goes stale.
   const send = useMutation({
     mutationFn: sendVideos,
-    meta: { invalidates: [['videos'], ['playlists']], success: 'Sent to YouTube playlist' },
+    meta: {
+      invalidates: [['videos'], ['playlists']],
+      success: 'Sent to YouTube playlist',
+    },
     onSuccess: () => selection.clear(),
   })
   const remove = useMutation({
     mutationFn: removeVideos,
-    meta: { invalidates: [['videos', playlistId], ['playlists']], success: 'Removed from YouTube' },
+    meta: {
+      invalidates: [['videos', playlistId], ['playlists']],
+      success: 'Removed from YouTube',
+    },
     onSuccess: () => selection.clear(),
   })
 
-  const searchOnApple = (items: Video[], target?: Playlist, removeFromSource = false) =>
+  const searchOnApple = (
+    items: Video[],
+    target?: Playlist,
+    removeFromSource = false,
+  ) =>
     search.mutate({
       data: {
         sourcePlaylistId: playlistId,
@@ -139,18 +163,26 @@ function YouTubePlaylist() {
         })),
       },
     })
-  const sendTo = (items: Video[], target: Playlist, removeFromSource: boolean) =>
+  const sendTo = (
+    items: Video[],
+    target: Playlist,
+    removeFromSource: boolean,
+  ) =>
     send.mutate({
       data: {
-        items: items.map(({ videoId, playlistItemId }) => ({ videoId, playlistItemId })),
+        items: items.map(({ videoId, playlistItemId }) => ({
+          videoId,
+          playlistItemId,
+        })),
         targetPlaylistId: target.id,
         removeFromSource,
       },
     })
-  const moveOrSearch = (items: Video[]) => (target: Playlist, removeFromSource: boolean) =>
-    target.service === 'apple'
-      ? searchOnApple(items, target, removeFromSource)
-      : sendTo(items, target, removeFromSource)
+  const moveOrSearch =
+    (items: Video[]) => (target: Playlist, removeFromSource: boolean) =>
+      target.service === 'apple'
+        ? searchOnApple(items, target, removeFromSource)
+        : sendTo(items, target, removeFromSource)
 
   return (
     <>
@@ -163,7 +195,11 @@ function YouTubePlaylist() {
             onValueChange={setFilter}
             className="max-md:hidden"
           />
-          <FilterInput value={text} onChange={setText} className="w-48 max-md:hidden" />
+          <FilterInput
+            value={text}
+            onChange={setText}
+            className="w-48 max-md:hidden"
+          />
           <ListActions selectedCount={selected.length}>
             <MoveMenu
               count={selected.length}
@@ -180,17 +216,29 @@ function YouTubePlaylist() {
             </MoveMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={selected.length === 0} className="max-md:hidden">
+                <Button
+                  variant="outline"
+                  disabled={selected.length === 0}
+                  className="max-md:hidden"
+                >
                   Copy to
                   <ChevronDownIcon className="text-subtle" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>Copy {plural(selected.length, 'video')} to</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  Copy {plural(selected.length, 'video')} to
+                </DropdownMenuLabel>
                 {playlists
-                  .filter((item) => item.service === 'youtube' && item.id !== playlistId)
+                  .filter(
+                    (item) =>
+                      item.service === 'youtube' && item.id !== playlistId,
+                  )
                   .map((target) => (
-                    <DropdownMenuItem key={target.id} onSelect={() => sendTo(selected, target, false)}>
+                    <DropdownMenuItem
+                      key={target.id}
+                      onSelect={() => sendTo(selected, target, false)}
+                    >
                       <PlaylistLabel playlist={target} />
                     </DropdownMenuItem>
                   ))}
@@ -203,7 +251,13 @@ function YouTubePlaylist() {
               description="They are removed from the YouTube playlist. The videos themselves are not affected."
               confirmLabel="Remove"
               onConfirm={() =>
-                remove.mutate({ data: { playlistItemIds: selected.map((video) => video.playlistItemId) } })
+                remove.mutate({
+                  data: {
+                    playlistItemIds: selected.map(
+                      (video) => video.playlistItemId,
+                    ),
+                  },
+                })
               }
             >
               Remove
@@ -223,7 +277,9 @@ function YouTubePlaylist() {
               <TableHead className="w-10 text-right max-md:hidden">#</TableHead>
               <TableHead>Title</TableHead>
               <TableHead className="w-56 max-lg:hidden">Channel</TableHead>
-              <TableHead className="w-14 text-right max-md:hidden">Length</TableHead>
+              <TableHead className="w-14 text-right max-md:hidden">
+                Length
+              </TableHead>
               <TableHead className="w-48 max-md:hidden">Apple Music</TableHead>
             </TableRow>
           </TableHeader>
@@ -231,12 +287,18 @@ function YouTubePlaylist() {
             {visible.map((video) => (
               <TableRow
                 key={video.videoId}
-                data-state={selection.isSelected(video.videoId) ? 'selected' : undefined}
+                data-state={
+                  selection.isSelected(video.videoId) ? 'selected' : undefined
+                }
                 data-active={video.videoId === active?.videoId}
                 onClick={() => detail.show(video)}
                 className="cursor-default max-md:h-14"
               >
-                <SelectRowCell selection={selection} id={video.videoId} label={video.title} />
+                <SelectRowCell
+                  selection={selection}
+                  id={video.videoId}
+                  label={video.title}
+                />
                 <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
                   {video.position}
                 </TableCell>
@@ -250,7 +312,11 @@ function YouTubePlaylist() {
                   {formatDuration(video.durationSeconds)}
                 </TableCell>
                 <TableCell className="max-w-0 truncate max-md:hidden">
-                  <span className={video.match?.status === 'done' ? undefined : 'text-subtle'}>
+                  <span
+                    className={
+                      video.match?.status === 'done' ? undefined : 'text-subtle'
+                    }
+                  >
                     {appleStatus(video)}
                   </span>
                 </TableCell>
@@ -271,7 +337,10 @@ function YouTubePlaylist() {
           onOpenChange={detail.setOpen}
           footer={
             <>
-              <Button disabled={search.isPending} onClick={() => searchOnApple([active])}>
+              <Button
+                disabled={search.isPending}
+                onClick={() => searchOnApple([active])}
+              >
                 Find on Apple Music
               </Button>
               <MoveMenu
@@ -313,17 +382,28 @@ function VideoTitle({ video }: { video: Video }) {
           <div className="min-w-0">
             <div className="truncate">{video.title}</div>
             <div className="truncate text-[11px] text-subtle md:hidden">
-              {video.channel} · {formatDuration(video.durationSeconds)} · {appleStatus(video)}
+              {video.channel} · {formatDuration(video.durationSeconds)} ·{' '}
+              {appleStatus(video)}
             </div>
           </div>
         </div>
       </HoverCardTrigger>
       {video.thumbnailUrl && (
-        <HoverCardContent side="bottom" align="start" className="w-56 max-md:hidden">
-          <img src={video.thumbnailUrl} alt="" className="aspect-video w-full rounded-md object-cover" />
+        <HoverCardContent
+          side="bottom"
+          align="start"
+          className="w-56 max-md:hidden"
+        >
+          <img
+            src={video.thumbnailUrl}
+            alt=""
+            className="aspect-video w-full rounded-md object-cover"
+          />
           <div className="flex justify-between gap-2 px-1 pt-1 text-[11px] text-muted-foreground">
             <span className="truncate">{video.channel}</span>
-            <span className="font-mono text-subtle">{formatDuration(video.durationSeconds)}</span>
+            <span className="font-mono text-subtle">
+              {formatDuration(video.durationSeconds)}
+            </span>
           </div>
         </HoverCardContent>
       )}
@@ -331,19 +411,31 @@ function VideoTitle({ video }: { video: Video }) {
   )
 }
 
-function VideoDetails({ video, playlistTitle }: { video: Video; playlistTitle: string }) {
+function VideoDetails({
+  video,
+  playlistTitle,
+}: {
+  video: Video
+  playlistTitle: string
+}) {
   return (
     <>
       <div className="space-y-3 p-4">
         {video.thumbnailUrl && (
-          <img src={video.thumbnailUrl} alt="" className="aspect-video w-full rounded-md object-cover" />
+          <img
+            src={video.thumbnailUrl}
+            alt=""
+            className="aspect-video w-full rounded-md object-cover"
+          />
         )}
         <h3 className="text-[15px] font-medium">{video.title}</h3>
         <div className="flex items-center justify-between gap-2 text-muted-foreground">
           <span className="truncate">
             {video.channel} · {formatDuration(video.durationSeconds)}
           </span>
-          <ExternalLink href={youtubeVideoUrl(video.videoId)}>Open on YouTube</ExternalLink>
+          <ExternalLink href={youtubeVideoUrl(video.videoId)}>
+            Open on YouTube
+          </ExternalLink>
         </div>
       </div>
       <Separator />
@@ -360,7 +452,9 @@ function VideoDetails({ video, playlistTitle }: { video: Video; playlistTitle: s
           <Separator />
           <div className="p-4">
             <div className="mb-1 text-[11px] text-subtle">Description</div>
-            <p className="whitespace-pre-line break-words text-muted-foreground">{video.description}</p>
+            <p className="whitespace-pre-line break-words text-muted-foreground">
+              {video.description}
+            </p>
           </div>
         </>
       )}

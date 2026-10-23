@@ -13,7 +13,8 @@ import { playlistsQuery } from '@/lib/queries'
 export const Route = createFileRoute('/_app/')({
   loader: async ({ context }) => {
     const playlists = await context.queryClient.ensureQueryData(playlistsQuery)
-    const first = playlists.find((playlist) => playlist.pinned) ?? playlists.at(0)
+    const first =
+      playlists.find((playlist) => playlist.pinned) ?? playlists.at(0)
     if (first) throw redirect(playlistRoute(first))
   },
   component: NoPlaylists,

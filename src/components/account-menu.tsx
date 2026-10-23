@@ -27,7 +27,8 @@ export function AccountMenu() {
   const appleDaysLeft = connections?.apple
     ? Math.round(
         appleTokenLifetimeDays -
-          (Date.now() - new Date(connections.apple.connectedAt).getTime()) / 86_400_000,
+          (Date.now() - new Date(connections.apple.connectedAt).getTime()) /
+            86_400_000,
       )
     : null
 
@@ -40,7 +41,12 @@ export function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1 px-1" aria-label="Account">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1 px-1"
+          aria-label="Account"
+        >
           <Avatar className="size-5">
             {user?.image && <AvatarImage src={user.image} alt="" />}
             <AvatarFallback className="bg-foreground text-[10px] text-background">
@@ -86,7 +92,9 @@ export function AccountMenu() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void signOut()}>Sign out</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void signOut()}>
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

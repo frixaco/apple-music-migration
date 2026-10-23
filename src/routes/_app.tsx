@@ -7,7 +7,8 @@ export const Route = createFileRoute('/_app')({
     if (!context.session) throw redirect({ to: '/sign-in' })
 
     const connections = await context.queryClient.fetchQuery(connectionsQuery)
-    if (!connections.youtube || !connections.apple) throw redirect({ to: '/connect' })
+    if (!connections.youtube || !connections.apple)
+      throw redirect({ to: '/connect' })
   },
   loader: ({ context }) => {
     void context.queryClient.prefetchQuery(playlistsQuery)
