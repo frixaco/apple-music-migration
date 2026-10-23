@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowUpRightIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { ChevronDownIcon, SearchIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel, DetailRow } from '@/components/detail-panel'
+import { ExternalLink } from '@/components/external-link'
 import { ListFooter, ListToolbar } from '@/components/list-layout'
 import { AddToAppleMenu } from '@/components/playlist-menus'
 import { Button } from '@/components/ui/button'
@@ -72,9 +73,9 @@ function ApplePlaylist() {
     add.mutate({
       data: { catalogIds: items.flatMap((song) => song.catalogId ?? []), playlistIds },
     })
-  const songUrl = (song: Song) =>
-    song.catalogId && connections?.apple
-      ? `https://music.apple.com/${connections.apple.storefront}/song/${song.catalogId}`
+  const activeUrl =
+    active?.catalogId && connections?.apple
+      ? `https://music.apple.com/${connections.apple.storefront}/song/${active.catalogId}`
       : null
 
   return (
@@ -220,13 +221,10 @@ function ApplePlaylist() {
               <div className="text-muted-foreground">
                 {active.album} · {formatDuration(active.durationSeconds)}
               </div>
-              {songUrl(active) && (
-                <Button variant="link" className="mt-auto h-auto justify-start p-0 text-muted-foreground" asChild>
-                  <a href={songUrl(active)!} target="_blank" rel="noreferrer">
-                    Open in Apple Music
-                    <ArrowUpRightIcon />
-                  </a>
-                </Button>
+              {activeUrl && (
+                <ExternalLink href={activeUrl} className="mt-auto justify-start">
+                  Open in Apple Music
+                </ExternalLink>
               )}
             </div>
           </div>
@@ -257,12 +255,9 @@ function ApplePlaylist() {
                       {formatDuration(active.source.durationSeconds)}{' '}
                       {formatDifference(active.durationSeconds, active.source.durationSeconds)}
                     </div>
-                    <Button variant="link" className="h-auto p-0 text-muted-foreground" asChild>
-                      <a href={youtubeVideoUrl(active.source.videoId)} target="_blank" rel="noreferrer">
-                        YouTube
-                        <ArrowUpRightIcon />
-                      </a>
-                    </Button>
+                    <ExternalLink href={youtubeVideoUrl(active.source.videoId)}>
+                      YouTube
+                    </ExternalLink>
                   </div>
                 </div>
               </div>

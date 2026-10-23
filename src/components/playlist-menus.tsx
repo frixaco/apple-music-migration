@@ -3,7 +3,7 @@ import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { NewPlaylistDialog } from '@/components/new-playlist-dialog'
-import { ServiceTag } from '@/components/service-tag'
+import { PlaylistLabel } from '@/components/playlist-label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -21,20 +21,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
 import { formatCount } from '@/lib/format'
+import { canAddTo, playlistKey, serviceName } from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 import type { Playlist, Service } from '@/lib/types'
-
-function PlaylistLabel({ playlist }: { playlist: Playlist }) {
-  return (
-    <>
-      <ServiceTag service={playlist.service} />
-      <span className="truncate">{playlist.title}</span>
-      <Badge variant="count" className="ml-auto">
-        {formatCount(playlist.count)}
-      </Badge>
-    </>
-  )
-}
 
 function MenuFooter({ note, children }: { note: string; children: ReactNode }) {
   return (
@@ -66,9 +55,8 @@ export function AddToAppleMenu({
   const [creating, setCreating] = useState(false)
   const [selected, setSelected] = useState(defaultSelected)
   const { data: playlists = [] } = useQuery(playlistsQuery)
-  // Apple Music only accepts additions to playlists the app may edit, and to Favourite Songs.
   const targets = playlists.filter(
-    (playlist) => playlist.service === 'apple' && (playlist.canEdit || playlist.isFavorites),
+    (playlist) => playlist.service === 'apple' && canAddTo(playlist),
   )
   const toggle = (id: string) =>
     setSelected((current) =>
@@ -159,15 +147,14 @@ export function MoveMenu({
   const [targetKey, setTargetKey] = useState('')
   const [removeFromSource, setRemoveFromSource] = useState(true)
   const { data: playlists = [] } = useQuery(playlistsQuery)
-  const keyOf = (playlist: Playlist) => `${playlist.service}:${playlist.id}`
-  const target = playlists.find((playlist) => keyOf(playlist) === targetKey)
+  const target = playlists.find((playlist) => playlistKey(playlist) === targetKey)
   const groups = services.map((service) => ({
     service,
     items: playlists.filter(
       (playlist) =>
         playlist.service === service &&
         playlist.id !== sourceId &&
-        (service === 'youtube' || playlist.canEdit || playlist.isFavorites),
+        canAddTo(playlist),
     ),
   }))
   const videos = `${count} ${count === 1 ? 'video' : 'videos'}`
@@ -186,19 +173,19 @@ export function MoveMenu({
                   key={service}
                   heading={
                     service === 'youtube'
-                      ? 'YouTube'
-                      : 'Apple Music · searched first, you review'
+                      ? serviceName.youtube
+                      : `${serviceName.apple} · searched first, you review`
                   }
                 >
                   {items.map((playlist) => (
                     <CommandItem
-                      key={keyOf(playlist)}
-                      value={keyOf(playlist)}
+                      key={playlistKey(playlist)}
+                      value={playlistKey(playlist)}
                       keywords={[playlist.title]}
-                      onSelect={() => setTargetKey(keyOf(playlist))}
+                      onSelect={() => setTargetKey(playlistKey(playlist))}
                     >
                       <RadioGroupItem
-                        value={keyOf(playlist)}
+                        value={playlistKey(playlist)}
                         tabIndex={-1}
                         className="pointer-events-none"
                       />

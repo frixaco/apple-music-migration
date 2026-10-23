@@ -12,6 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -138,21 +147,25 @@ function ConnectionSection({
   action: ReactNode
 }) {
   return (
-    <section className="border-b px-4 py-3">
-      <div className="flex items-center gap-3">
+    <Item size="sm" className="rounded-none border-b-border">
+      <ItemMedia>
         {connected ? (
           <CircleCheckIcon className="size-4 fill-foreground text-card" />
         ) : (
           <CircleIcon className="size-4 text-subtle" />
         )}
-        <div className="min-w-0 flex-1">
-          <div className="font-medium">{title}</div>
-          <div className="truncate text-muted-foreground">{detail}</div>
-        </div>
-        {action}
-      </div>
-      {connected && <PlaylistPreview service={service} />}
-    </section>
+      </ItemMedia>
+      <ItemContent className="min-w-0 gap-0">
+        <ItemTitle>{title}</ItemTitle>
+        <ItemDescription className="truncate">{detail}</ItemDescription>
+      </ItemContent>
+      <ItemActions>{action}</ItemActions>
+      {connected && (
+        <ItemFooter className="block pl-6.5">
+          <PlaylistPreview service={service} />
+        </ItemFooter>
+      )}
+    </Item>
   )
 }
 
@@ -162,7 +175,7 @@ function PlaylistPreview({ service }: { service: Service }) {
   const playlists = data?.filter((playlist) => playlist.service === service) ?? []
 
   return (
-    <div className="mt-2 pl-7">
+    <div>
       <div className="mb-1 text-[11px] text-subtle">
         {service === 'youtube' ? 'Playlists' : 'Library playlists'}{' '}
         {data && <Badge variant="count">{playlists.length}</Badge>}

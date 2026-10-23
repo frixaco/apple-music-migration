@@ -7,7 +7,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { playlistRoute } from '@/lib/playlist-route'
+import { playlistRoute } from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/')({

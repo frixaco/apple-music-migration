@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { ChevronDownIcon, PinIcon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import { useState } from 'react'
 import { NewPlaylistDialog } from '@/components/new-playlist-dialog'
-import { ServiceTag } from '@/components/service-tag'
+import { PlaylistLabel, ServiceTag } from '@/components/playlist-label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +18,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { setPinned } from '@/functions/playlists'
 import { formatCount } from '@/lib/format'
-import { playlistRoute } from '@/lib/playlist-route'
+import { canAddTo, playlistKey, playlistRoute, serviceName } from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 import type { Playlist, Service } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -97,7 +97,7 @@ export function PlaylistPicker({
                   <CommandList key={service} className="max-h-none">
                     <CommandEmpty>No playlists</CommandEmpty>
                     <CommandGroup
-                      heading={`${service === 'youtube' ? 'YouTube' : 'Apple Music'} · ${byService(service).length}`}
+                      heading={`${serviceName[service]} · ${byService(service).length}`}
                       className="h-80 overflow-y-auto"
                     >
                       {byService(service).map((playlist) => (
@@ -112,7 +112,7 @@ export function PlaylistPicker({
                     <CommandGroup>
                       <CommandItem onSelect={() => createOn(service)}>
                         <PlusIcon />
-                        New {service === 'youtube' ? 'YouTube' : 'Apple Music'} playlist
+                        New {serviceName[service]} playlist
                       </CommandItem>
                     </CommandGroup>
                   </CommandList>
@@ -124,13 +124,13 @@ export function PlaylistPicker({
                   <CommandEmpty>No playlists</CommandEmpty>
                   {[
                     { heading: 'Pinned', items: playlists.filter((p) => p.pinned) },
-                    { heading: 'YouTube', items: byService('youtube').filter((p) => !p.pinned) },
-                    { heading: 'Apple Music', items: byService('apple').filter((p) => !p.pinned) },
+                    { heading: serviceName.youtube, items: byService('youtube').filter((p) => !p.pinned) },
+                    { heading: serviceName.apple, items: byService('apple').filter((p) => !p.pinned) },
                   ].map(({ heading, items }) => (
                     <CommandGroup key={heading} heading={`${heading} · ${items.length}`}>
                       {items.map((playlist) => (
                         <PlaylistItem
-                          key={`${playlist.service}:${playlist.id}`}
+                          key={playlistKey(playlist)}
                           playlist={playlist}
                           onSelect={openPlaylist}
                         />
@@ -181,19 +181,14 @@ function PlaylistItem({
 
   return (
     <CommandItem
-      value={`${playlist.service}:${playlist.id}`}
+      value={playlistKey(playlist)}
       keywords={[playlist.title]}
       onSelect={() => onSelect(playlist)}
       className="group/playlist"
     >
-      <ServiceTag service={playlist.service} />
-      <span className="truncate">{playlist.title}</span>
-      {playlist.service === 'apple' && !playlist.canEdit && !playlist.isFavorites && (
-        <span className="text-[11px] text-subtle">read-only</span>
-      )}
-      <Badge variant="count" className="ml-auto">
-        {formatCount(playlist.count)}
-      </Badge>
+      <PlaylistLabel playlist={playlist}>
+        {!canAddTo(playlist) && <span className="text-[11px] text-subtle">read-only</span>}
+      </PlaylistLabel>
       <Button
         variant="ghost"
         size="icon-xs"

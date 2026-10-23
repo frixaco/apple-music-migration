@@ -51,10 +51,10 @@ export function AccountMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <div className="px-2 py-1.5">
+        <DropdownMenuLabel className="py-1.5 text-[13px] text-foreground">
           <div>{user?.name}</div>
           <div className="text-muted-foreground">{user?.email}</div>
-        </div>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>Connections</DropdownMenuLabel>

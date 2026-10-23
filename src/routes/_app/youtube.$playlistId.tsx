@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowUpRightIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { ChevronDownIcon, SearchIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel, DetailRow } from '@/components/detail-panel'
+import { ExternalLink } from '@/components/external-link'
 import { ListFooter, ListToolbar } from '@/components/list-layout'
 import { MoveMenu } from '@/components/playlist-menus'
-import { ServiceTag } from '@/components/service-tag'
+import { PlaylistLabel } from '@/components/playlist-label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -211,11 +212,7 @@ function YouTubePlaylist() {
                   .filter((item) => item.service === 'youtube' && item.id !== playlistId)
                   .map((target) => (
                     <DropdownMenuItem key={target.id} onSelect={() => sendTo(selected, target, false)}>
-                      <ServiceTag service="youtube" />
-                      <span className="truncate">{target.title}</span>
-                      <Badge variant="count" className="ml-auto">
-                        {formatCount(target.count)}
-                      </Badge>
+                      <PlaylistLabel playlist={target} />
                     </DropdownMenuItem>
                   ))}
               </DropdownMenuContent>
@@ -382,12 +379,7 @@ function VideoDetails({ video, playlistTitle }: { video: Video; playlistTitle: s
           <span className="truncate">
             {video.channel} · {formatDuration(video.durationSeconds)}
           </span>
-          <Button variant="link" className="h-auto p-0 text-muted-foreground" asChild>
-            <a href={youtubeVideoUrl(video.videoId)} target="_blank" rel="noreferrer">
-              Open on YouTube
-              <ArrowUpRightIcon />
-            </a>
-          </Button>
+          <ExternalLink href={youtubeVideoUrl(video.videoId)}>Open on YouTube</ExternalLink>
         </div>
       </div>
       <Separator />

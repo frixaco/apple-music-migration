@@ -13,9 +13,8 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { createPlaylist } from '@/functions/playlists'
+import { playlistRoute, serviceName } from '@/lib/playlist'
 import type { Service } from '@/lib/types'
-
-const serviceName = { youtube: 'YouTube', apple: 'Apple Music' }
 
 export function NewPlaylistDialog({
   service,
@@ -31,13 +30,7 @@ export function NewPlaylistDialog({
     meta: { invalidates: [['playlists']], success: 'Playlist created' },
     onSuccess: (playlistId, { data }) => {
       onOpenChange(false)
-      void navigate({
-        to:
-          data.service === 'youtube'
-            ? '/youtube/$playlistId'
-            : '/apple/$playlistId',
-        params: { playlistId },
-      })
+      void navigate(playlistRoute({ service: data.service, id: playlistId }))
     },
   })
 

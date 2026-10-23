@@ -4,12 +4,10 @@ import { SearchIcon } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
 import { Brand } from '@/components/brand'
 import { PlaylistPicker } from '@/components/playlist-picker'
-import { ServiceTag } from '@/components/service-tag'
-import { Badge } from '@/components/ui/badge'
+import { PlaylistLabel } from '@/components/playlist-label'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { formatCount } from '@/lib/format'
-import { playlistRoute } from '@/lib/playlist-route'
+import { playlistKey, playlistRoute } from '@/lib/playlist'
 import { playlistsQuery, runQuery } from '@/lib/queries'
 
 export function TopBar() {
@@ -28,15 +26,13 @@ export function TopBar() {
       <nav className="flex min-w-0 items-center gap-1 max-md:hidden">
         {pinned.map((playlist) => (
           <Button
-            key={`${playlist.service}:${playlist.id}`}
+            key={playlistKey(playlist)}
             variant="ghost"
             className="text-muted-foreground data-[status=active]:bg-secondary data-[status=active]:text-foreground"
             asChild
           >
             <Link {...playlistRoute(playlist)}>
-              <ServiceTag service={playlist.service} />
-              <span className="truncate">{playlist.title}</span>
-              <Badge variant="count">{formatCount(playlist.count)}</Badge>
+              <PlaylistLabel playlist={playlist} />
             </Link>
           </Button>
         ))}

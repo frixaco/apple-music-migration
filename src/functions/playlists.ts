@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { match, pinnedPlaylist } from '@/db/schema'
+import { playlistKey } from '@/lib/playlist'
 import type { Playlist, Song, Video } from '@/lib/types'
 import {
   addSongsToPlaylists,
@@ -29,7 +30,9 @@ export const listPlaylists = createServerFn()
       findYouTubeAccount(userId),
       findAppleConnection(userId),
     ])
-    const pinned = new Set(pins.map((pin) => `${pin.service}:${pin.playlistId}`))
+    const pinned = new Set(
+      pins.map((pin) => playlistKey({ service: pin.service, id: pin.playlistId })),
+    )
 
     const youtubePlaylists = async (): Promise<Playlist[]> => {
       if (!youtubeAccount) return []
@@ -39,7 +42,7 @@ export const listPlaylists = createServerFn()
         service: 'youtube',
         canEdit: true,
         isFavorites: false,
-        pinned: pinned.has(`youtube:${playlist.id}`),
+        pinned: pinned.has(playlistKey({ service: 'youtube', id: playlist.id })),
       }))
     }
 
@@ -55,7 +58,7 @@ export const listPlaylists = createServerFn()
           count: await client.getLibraryPlaylistTrackCount(playlist.id),
           canEdit: playlist.attributes?.canEdit ?? false,
           isFavorites: isFavoriteSongsPlaylist(playlist),
-          pinned: pinned.has(`apple:${playlist.id}`),
+          pinned: pinned.has(playlistKey({ service: 'apple', id: playlist.id })),
         })),
       )
     }

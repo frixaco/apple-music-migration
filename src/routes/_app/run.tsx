@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowUpRightIcon, ChevronDownIcon, SearchIcon, SearchXIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DetailPanel } from '@/components/detail-panel'
+import { ExternalLink } from '@/components/external-link'
 import { ListFooter, ListToolbar } from '@/components/list-layout'
 import { AddToAppleMenu, MoveMenu } from '@/components/playlist-menus'
 import { Badge } from '@/components/ui/badge'
@@ -376,12 +377,7 @@ function MatchOptions({
             <span className="truncate">
               {item.channel} · {formatDuration(item.durationSeconds)}
             </span>
-            <Button variant="link" className="h-auto p-0 text-muted-foreground" asChild>
-              <a href={youtubeVideoUrl(item.videoId)} target="_blank" rel="noreferrer">
-                YouTube
-                <ArrowUpRightIcon />
-              </a>
-            </Button>
+            <ExternalLink href={youtubeVideoUrl(item.videoId)}>YouTube</ExternalLink>
           </div>
         </div>
       </div>
