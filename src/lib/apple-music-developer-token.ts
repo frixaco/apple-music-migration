@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { sign } from "node:crypto";
+import { readRequiredEnv } from "./env";
 
 export type AppleMusicDeveloperTokenConfig = {
   teamId: string;
@@ -63,16 +64,6 @@ export function validateDeveloperTokenConfig(config: AppleMusicDeveloperTokenCon
   if (!config.privateKeyPath.trim()) {
     throw new Error("APPLE_PRIVATE_KEY_PATH is required.");
   }
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
 }
 
 function validateAppleIdentifier(name: string, value: string): void {

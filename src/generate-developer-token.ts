@@ -1,5 +1,5 @@
-import { loadDeveloperTokenConfig, generateDeveloperToken } from "./apple-music-developer-token";
-import { upsertEnvValue } from "./env-file";
+import { loadDeveloperTokenConfig, generateDeveloperToken } from "./lib/apple-music-developer-token";
+import { upsertEnvValue } from "./lib/env";
 
 const writeEnv = Bun.argv.includes("--write-env");
 const config = loadDeveloperTokenConfig();

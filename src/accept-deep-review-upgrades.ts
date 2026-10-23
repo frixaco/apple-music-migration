@@ -1,9 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
-
-type MatchReportItem = {
-  index: number;
-  confidenceScore: number;
-};
+import { manualOverridesPath, readMatchReport } from "./lib/match-report";
 
 type ManualOverride = {
   index: number;
@@ -13,9 +9,9 @@ type ManualOverride = {
   [key: string]: unknown;
 };
 
-const report = JSON.parse(readFileSync("data/processed/youtube_apple_music_confidence.json", "utf8")) as MatchReportItem[];
+const report = readMatchReport();
 const deepOverrides = JSON.parse(readFileSync("reports/manual-review/deep-review-overrides.json", "utf8")) as ManualOverride[];
-const existingOverrides = JSON.parse(readFileSync("data/manual-overrides.json", "utf8")) as ManualOverride[];
+const existingOverrides = JSON.parse(readFileSync(manualOverridesPath, "utf8")) as ManualOverride[];
 const reportByIndex = new Map(report.map((item) => [item.index, item]));
 const acceptedDeepOverrides = deepOverrides
   .filter((override) => {
@@ -43,7 +39,7 @@ for (const override of acceptedDeepOverrides) {
 const merged = [...mergedByIndex.values()].sort((left, right) => left.index - right.index);
 const held = deepOverrides.filter((override) => !acceptedDeepOverrides.some((accepted) => accepted.index === override.index));
 
-writeFileSync("data/manual-overrides.json", `${JSON.stringify(merged, null, 2)}\n`);
+writeFileSync(manualOverridesPath, `${JSON.stringify(merged, null, 2)}\n`);
 writeFileSync("reports/manual-review/deep-review-held-overrides.json", `${JSON.stringify(held, null, 2)}\n`);
 
 console.log(`Accepted deep-review upgrades: ${acceptedDeepOverrides.length}`);

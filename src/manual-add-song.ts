@@ -1,11 +1,7 @@
-import { readFileSync } from "node:fs";
-import { AppleMusicClient, type AppleMusicPlaylist } from "./apple-music-client";
-import { upsertManualProgress } from "./manual-progress";
-
-type ManualQueueItem = {
-  index: number;
-  youtubeTitle: string;
-};
+import { appleMusicClientFromEnv, type AppleMusicClient, type AppleMusicPlaylist } from "./lib/apple-music-client";
+import { readQueueItemFromIndexFlag, upsertManualProgress } from "./lib/manual-review";
+import { millisToSeconds } from "./lib/matching";
+import { readFlag } from "./lib/util";
 
 const targetPlaylistName = Bun.env.TARGET_PLAYLIST_NAME?.trim() || "All";
 const storefront = Bun.env.APPLE_MUSIC_STOREFRONT?.trim() || "uz";
@@ -17,23 +13,9 @@ if (!indexArg || !songId) {
   throw new Error("Usage: bun run manual:add-song -- --index <youtube index> --apple-song-id <apple song id> [--notes \"...\"]");
 }
 
-const targetIndex = Number(indexArg);
+const item = readQueueItemFromIndexFlag();
 
-if (!Number.isInteger(targetIndex)) {
-  throw new Error("--index must be an integer.");
-}
-
-const queue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as ManualQueueItem[];
-const item = queue.find((candidate) => candidate.index === targetIndex);
-
-if (!item) {
-  throw new Error(`Could not find queue item ${targetIndex}.`);
-}
-
-const client = new AppleMusicClient({
-  developerToken: readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN"),
-  musicUserToken: readRequiredEnv("APPLE_MUSIC_USER_TOKEN"),
-});
+const client = appleMusicClientFromEnv();
 const playlist = await findTargetPlaylist(client);
 const song = await client.getCatalogSong(storefront, songId);
 const attributes = song.attributes ?? {};
@@ -51,7 +33,7 @@ upsertManualProgress({
   appleName: attributes.name ?? "",
   appleArtist: attributes.artistName ?? "",
   appleAlbum: attributes.albumName ?? "",
-  appleDurationSeconds: attributes.durationInMillis ? Math.round(attributes.durationInMillis / 1000) : null,
+  appleDurationSeconds: millisToSeconds(attributes.durationInMillis),
   appleUrl: attributes.url ?? "",
   reviewerNotes: notes,
   processedAt: new Date().toISOString(),
@@ -73,24 +55,4 @@ async function findTargetPlaylist(client: AppleMusicClient): Promise<AppleMusicP
   }
 
   return target;
-}
-
-function readFlag(name: string): string | null {
-  const index = Bun.argv.indexOf(name);
-
-  if (index === -1) {
-    return null;
-  }
-
-  return Bun.argv[index + 1] ?? null;
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
 }

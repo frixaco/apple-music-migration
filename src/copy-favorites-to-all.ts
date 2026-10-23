@@ -1,4 +1,5 @@
-import { AppleMusicClient, type AppleMusicPlaylist, type AppleMusicTrack } from "./apple-music-client";
+import { appleMusicClientFromEnv, findFavoriteSongsPlaylist, type AppleMusicTrack } from "./lib/apple-music-client";
+import { chunks } from "./lib/util";
 
 type CopyCandidate = {
   track: AppleMusicTrack;
@@ -7,9 +8,7 @@ type CopyCandidate = {
 
 const targetPlaylistName = Bun.env.TARGET_PLAYLIST_NAME?.trim() || "All";
 const dryRun = Bun.argv.includes("--dry-run");
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
-const client = new AppleMusicClient({ developerToken, musicUserToken });
+const client = appleMusicClientFromEnv();
 const playlists = await client.getAllLibraryPlaylists();
 const favoriteSongs = findFavoriteSongsPlaylist(playlists);
 const targetPlaylist = playlists.find((playlist) => playlist.attributes?.name === targetPlaylistName);
@@ -60,13 +59,6 @@ const updatedTargetTracks = await client.getAllLibraryPlaylistTracks(targetPlayl
 
 console.log(`Appended: ${missingFavorites.length}`);
 console.log(`Target songs after: ${updatedTargetTracks.length}`);
-
-function findFavoriteSongsPlaylist(playlistsToSearch: AppleMusicPlaylist[]): AppleMusicPlaylist | undefined {
-  return playlistsToSearch.find((playlist) => {
-    const name = playlist.attributes?.name?.toLowerCase();
-    return name === "favorite songs" || name === "favourite songs";
-  });
-}
 
 function buildExistingKeys(tracks: AppleMusicTrack[]): Set<string> {
   const keys = new Set<string>();
@@ -124,24 +116,4 @@ function printCandidates(candidates: CopyCandidate[]): void {
     const album = track.attributes?.albumName ?? "";
     console.log(`${index + 1}. ${name} - ${artist}${album ? ` (${album})` : ""}`);
   }
-}
-
-function chunks<T>(items: T[], size: number): T[][] {
-  const result: T[][] = [];
-
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-
-  return result;
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
 }

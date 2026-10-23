@@ -1,4 +1,4 @@
-import { upsertEnvValue } from "./env-file";
+import { readRequiredEnv, upsertEnvValue } from "./lib/env";
 
 const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
 const port = Number(Bun.env.PORT ?? "4173");
@@ -30,16 +30,6 @@ const server = Bun.serve({
 });
 
 console.log(`Open http://localhost:${server.port} to authorize Apple Music.`);
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
-}
 
 function htmlResponse(html: string): Response {
   return new Response(html, {

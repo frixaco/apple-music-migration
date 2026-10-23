@@ -1,9 +1,7 @@
-import { AppleMusicClient, type AppleMusicPlaylist } from "./apple-music-client";
+import { appleMusicClientFromEnv, findFavoriteSongsPlaylist } from "./lib/apple-music-client";
 
 const playlistName = Bun.env.FAVORITES_COPY_PLAYLIST_NAME?.trim() || "YouTube + Favourite Songs";
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
-const client = new AppleMusicClient({ developerToken, musicUserToken });
+const client = appleMusicClientFromEnv();
 const playlists = await client.getAllLibraryPlaylists();
 const favoriteSongs = findFavoriteSongsPlaylist(playlists);
 
@@ -42,20 +40,3 @@ const created = await client.createLibraryPlaylist({
 console.log(`Created playlist: ${created.attributes?.name ?? playlistName}`);
 console.log(`ID: ${created.id}`);
 console.log(`Copied songs: ${tracks.length}`);
-
-function findFavoriteSongsPlaylist(playlists: AppleMusicPlaylist[]): AppleMusicPlaylist | undefined {
-  return playlists.find((playlist) => {
-    const name = playlist.attributes?.name?.toLowerCase();
-    return name === "favorite songs" || name === "favourite songs";
-  });
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
-}

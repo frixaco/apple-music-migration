@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-
-import type { ManualProgressItem } from "./manual-progress.ts";
+import { readManualProgress, readManualQueue, type ManualProgressItem, type ManualQueueItem } from "./lib/manual-review";
+import { exchangeAuthCode, readOAuthClient, savedAccessToken, writeToken, youtubeAuthUrl, type GoogleOAuthClient } from "./lib/youtube-auth";
 
 async function main(): Promise<void> {
-  const progress = JSON.parse(readFileSync("data/manual-review/progress.json", "utf8")) as ManualProgressItem[];
-  const queue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as QueueItem[];
+  const progress = readManualProgress();
+  const queue = readManualQueue();
   const queueByIndex = new Map(queue.map((item) => [item.index, item]));
   const nonAddedItems = progress
     .filter((item) => item.status !== "added")
@@ -43,13 +43,6 @@ async function main(): Promise<void> {
   console.log(`Skipped videos recorded in state: ${currentState.skippedIndexes.length}/${nonAddedItems.length}`);
 }
 
-type QueueItem = {
-  index: number;
-  youtubeVideoId: string;
-  youtubeUrl: string;
-  youtubeTitle: string;
-};
-
 type NonAddedVideo = {
   index: number;
   youtubeTitle: string;
@@ -60,14 +53,6 @@ type YoutubeAuth = {
   accessToken: string;
 };
 
-type GoogleOAuthClient = {
-  installed?: {
-    client_id?: string;
-    client_secret?: string;
-    auth_uri?: string;
-  };
-};
-
 type YoutubePlaylistState = {
   playlistId: string | null;
   addedIndexes: number[];
@@ -76,49 +61,10 @@ type YoutubePlaylistState = {
   lastUpdatedAt: string | null;
 };
 
-type GoogleToken = {
-  access_token: string;
-  refresh_token?: string;
-  expires_in?: number;
-  expires_at?: number;
-  token_type?: string;
-  scope?: string;
-};
-
-const oauthClientPath = "secrets/google-oauth-client.json";
-const tokenPath = "secrets/google-youtube-token.json";
 const statePath = "data/manual-review/youtube-non-added-playlist-state.json";
-const youtubeScope = "https://www.googleapis.com/auth/youtube";
 const redirectUri = "http://localhost";
 
 void main();
-
-async function getYoutubeAuth(): Promise<YoutubeAuth> {
-  const client = readOAuthClient();
-  const token = existsSync(tokenPath) ? (JSON.parse(readFileSync(tokenPath, "utf8")) as GoogleToken) : null;
-  const validToken = token?.access_token !== undefined && (token.expires_at ?? 0) > Date.now() + 60_000;
-
-  if (validToken) {
-    return { accessToken: token.access_token };
-  }
-
-  if (token?.refresh_token !== undefined) {
-    const refreshedToken = await refreshAccessToken(client, token.refresh_token);
-    writeToken({ ...token, ...refreshedToken });
-    return { accessToken: refreshedToken.access_token };
-  }
-
-  const authCode = readAuthCodeArg();
-
-  if (authCode === null) {
-    printAuthInstructions(client);
-    process.exit(0);
-  }
-
-  const newToken = await exchangeAuthCode(client, authCode);
-  writeToken(newToken);
-  return { accessToken: newToken.access_token };
-}
 
 async function createPlaylist(auth: YoutubeAuth, itemCount: number): Promise<string> {
   const response = await youtubeFetch<YoutubePlaylistResponse>(
@@ -204,57 +150,6 @@ type GoogleApiError = {
   };
 };
 
-async function exchangeAuthCode(client: RequiredGoogleOAuthClient, code: string): Promise<GoogleToken> {
-  return withExpiry(
-    await fetchForm<GoogleToken>("https://oauth2.googleapis.com/token", {
-      client_id: client.clientId,
-      client_secret: client.clientSecret,
-      code,
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code",
-    }),
-  );
-}
-
-function printAuthInstructions(client: RequiredGoogleOAuthClient): void {
-  const authUrl = new URL(client.authUri);
-  authUrl.search = new URLSearchParams({
-    client_id: client.clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: youtubeScope,
-    access_type: "offline",
-    prompt: "consent",
-  }).toString();
-
-  console.log("Open this Google auth URL:");
-  console.log(authUrl.toString());
-  console.log("");
-  console.log("After approving, copy the `code` value from the browser address bar.");
-  console.log("Then run:");
-  console.log("bun run youtube:create-non-added-playlist -- --code '<code-or-full-redirect-url>'");
-}
-
-type RequiredGoogleOAuthClient = {
-  clientId: string;
-  clientSecret: string;
-  authUri: string;
-};
-
-function readOAuthClient(): RequiredGoogleOAuthClient {
-  const client = JSON.parse(readFileSync(oauthClientPath, "utf8")) as GoogleOAuthClient;
-  const installed = client.installed;
-  const clientId = installed?.client_id;
-  const clientSecret = installed?.client_secret;
-  const authUri = installed?.auth_uri ?? "https://accounts.google.com/o/oauth2/auth";
-
-  if (clientId === undefined || clientSecret === undefined) {
-    throw new Error(`Expected an installed-app OAuth client JSON at ${oauthClientPath}.`);
-  }
-
-  return { clientId, clientSecret, authUri };
-}
-
 function readState(): YoutubePlaylistState {
   if (!existsSync(statePath)) {
     return { playlistId: null, addedIndexes: [], skippedIndexes: [], skipReasons: {}, lastUpdatedAt: null };
@@ -275,19 +170,7 @@ function writeState(state: YoutubePlaylistState): void {
   writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
 }
 
-function writeToken(token: GoogleToken): void {
-  mkdirSync("secrets", { recursive: true });
-  writeFileSync(tokenPath, `${JSON.stringify(token, null, 2)}\n`, { mode: 0o600 });
-}
-
-function withExpiry(token: GoogleToken): GoogleToken {
-  return {
-    ...token,
-    expires_at: Date.now() + (token.expires_in ?? 3600) * 1000,
-  };
-}
-
-function toNonAddedVideo(progressItem: ManualProgressItem, queueItem: QueueItem | undefined): NonAddedVideo {
+function toNonAddedVideo(progressItem: ManualProgressItem, queueItem: ManualQueueItem | undefined): NonAddedVideo {
   return {
     index: progressItem.index,
     youtubeTitle: progressItem.youtubeTitle,
@@ -315,28 +198,31 @@ function extractAuthCode(value: string): string {
   }
 }
 
-async function refreshAccessToken(client: RequiredGoogleOAuthClient, refreshToken: string): Promise<GoogleToken> {
-  return withExpiry(
-    await fetchForm<GoogleToken>("https://oauth2.googleapis.com/token", {
-      client_id: client.clientId,
-      client_secret: client.clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  );
-}
+async function getYoutubeAuth(): Promise<YoutubeAuth> {
+  const accessToken = await savedAccessToken();
 
-async function fetchForm<T>(url: string, body: Record<string, string>): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(body),
-  });
-  const responseBody = (await response.json()) as T | GoogleApiError;
-
-  if (!response.ok) {
-    throw new Error(`Google API failed: ${response.status} ${JSON.stringify(responseBody)}`);
+  if (accessToken) {
+    return { accessToken };
   }
 
-  return responseBody as T;
+  const client = readOAuthClient();
+  const authCode = readAuthCodeArg();
+
+  if (authCode === null) {
+    printAuthInstructions(client);
+    process.exit(0);
+  }
+
+  const newToken = await exchangeAuthCode(client, authCode, redirectUri);
+  writeToken(newToken);
+  return { accessToken: newToken.access_token };
+}
+
+function printAuthInstructions(client: GoogleOAuthClient): void {
+  console.log("Open this Google auth URL:");
+  console.log(youtubeAuthUrl(client, redirectUri).toString());
+  console.log("");
+  console.log("After approving, copy the `code` value from the browser address bar.");
+  console.log("Then run:");
+  console.log("bun run youtube:create-non-added-playlist -- --code '<code-or-full-redirect-url>'");
 }

@@ -14,3 +14,13 @@ export function upsertEnvValue(envPath: string, name: string, value: string): vo
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+export function readRequiredEnv(name: string): string {
+  const value = Bun.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(`${name} is required. Add it to .env.`);
+  }
+
+  return value;
+}

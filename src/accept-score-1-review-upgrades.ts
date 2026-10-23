@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { manualOverridesPath } from "./lib/match-report";
 
 type ManualOverride = {
   index: number;
@@ -7,7 +8,7 @@ type ManualOverride = {
   [key: string]: unknown;
 };
 
-const existingOverrides = JSON.parse(readFileSync("data/manual-overrides.json", "utf8")) as ManualOverride[];
+const existingOverrides = JSON.parse(readFileSync(manualOverridesPath, "utf8")) as ManualOverride[];
 const scoreOneOverrides = JSON.parse(readFileSync("reports/manual-review/score-1-deep-review-overrides.json", "utf8")) as ManualOverride[];
 const acceptedRecoveryIndexes = new Set([
   16,
@@ -44,7 +45,7 @@ for (const override of accepted) {
 const merged = [...mergedByIndex.values()].sort((left, right) => left.index - right.index);
 const held = scoreOneOverrides.filter((override) => !accepted.some((acceptedOverride) => acceptedOverride.index === override.index));
 
-writeFileSync("data/manual-overrides.json", `${JSON.stringify(merged, null, 2)}\n`);
+writeFileSync(manualOverridesPath, `${JSON.stringify(merged, null, 2)}\n`);
 writeFileSync("reports/manual-review/score-1-held-overrides.json", `${JSON.stringify(held, null, 2)}\n`);
 
 console.log(`Accepted score 1 recoveries: ${accepted.length}`);

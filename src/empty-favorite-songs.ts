@@ -1,4 +1,4 @@
-import { AppleMusicClient, type AppleMusicPlaylist, type AppleMusicTrack } from "./apple-music-client";
+import { appleMusicClientFromEnv, findFavoriteSongsPlaylist, type AppleMusicTrack } from "./lib/apple-music-client";
 
 type RemovalCandidate = {
   index: number;
@@ -7,9 +7,7 @@ type RemovalCandidate = {
 
 const dryRun = Bun.argv.includes("--dry-run");
 const limit = readLimitFlag();
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
-const client = new AppleMusicClient({ developerToken, musicUserToken });
+const client = appleMusicClientFromEnv();
 const playlists = await client.getAllLibraryPlaylists();
 const favoriteSongs = findFavoriteSongsPlaylist(playlists);
 
@@ -44,13 +42,6 @@ const updatedFavoriteTracks = await client.getAllLibraryPlaylistTracks(favoriteS
 console.log(`Removed favorite status: ${selectedCandidates.length}`);
 console.log(`Favourite Songs after: ${updatedFavoriteTracks.length}`);
 
-function findFavoriteSongsPlaylist(playlistsToSearch: AppleMusicPlaylist[]): AppleMusicPlaylist | undefined {
-  return playlistsToSearch.find((playlist) => {
-    const name = playlist.attributes?.name?.toLowerCase();
-    return name === "favorite songs" || name === "favourite songs";
-  });
-}
-
 function printCandidates(candidatesToPrint: RemovalCandidate[]): void {
   for (const candidate of candidatesToPrint) {
     const name = candidate.track.attributes?.name ?? candidate.track.id;
@@ -71,16 +62,6 @@ function readLimitFlag(): number | null {
 
   if (!Number.isInteger(value) || value < 1) {
     throw new Error("--limit must be a positive integer.");
-  }
-
-  return value;
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
   }
 
   return value;

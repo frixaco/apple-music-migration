@@ -1,27 +1,8 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { AppleMusicClient, type AppleMusicCatalogResource } from "./apple-music-client";
-
-type ConfidenceScore = 1 | 2 | 3 | 4 | 5;
-
-type MatchReportItem = {
-  index: number;
-  youtubeTitle: string;
-  youtubeChannel: string;
-  youtubeDurationSeconds: number | null;
-  parsedArtist: string;
-  parsedTitle: string;
-  confidenceScore: ConfidenceScore;
-  bestAppleId: string;
-  bestAppleType: string;
-  bestAppleName: string;
-  bestAppleArtist: string;
-  bestAppleAlbum: string;
-  bestAppleDurationSeconds: number | null;
-  bestAppleUrl: string;
-  rawScore: number;
-  notes: string[];
-  searchQueries: string[];
-};
+import { mkdirSync, writeFileSync } from "node:fs";
+import { appleMusicClientFromEnv, type AppleMusicCatalogResource } from "./lib/apple-music-client";
+import { artistBeforeDash, channelArtist, cleanSearch, dedupeCandidates, millisToSeconds, normalize, scoreDuration } from "./lib/matching";
+import { readMatchReport, type ConfidenceScore, type MatchReportItem } from "./lib/match-report";
+import { round, sleep, unique } from "./lib/util";
 
 type Override = {
   index: number;
@@ -50,11 +31,9 @@ type ReviewedCandidate = {
   rawScore: number;
 };
 
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
 const storefront = Bun.env.APPLE_MUSIC_STOREFRONT?.trim() || "uz";
-const client = new AppleMusicClient({ developerToken, musicUserToken });
-const report = JSON.parse(readFileSync("data/processed/youtube_apple_music_confidence.json", "utf8")) as MatchReportItem[];
+const client = appleMusicClientFromEnv();
+const report = readMatchReport();
 const rows = report
   .filter((item) => item.confidenceScore >= 2 && item.confidenceScore <= 4)
   .sort((left, right) => left.index - right.index);
@@ -102,16 +81,6 @@ persist();
 console.log(`Overrides suggested: ${overrides.length}`);
 console.log(`Unchanged: ${unchanged.length}`);
 
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
-}
-
 function buildDeepQueries(row: MatchReportItem): string[] {
   const titleVariants = titleSearchVariants(row.youtubeTitle, row.parsedTitle);
   const artistVariants = artistSearchVariants(row.youtubeTitle, row.youtubeChannel, row.parsedArtist);
@@ -154,7 +123,7 @@ function chooseBest(row: MatchReportItem, candidates: AppleMusicCatalogResource[
       similarity(channelArtist(row.youtubeChannel), resource.attributes?.artistName ?? ""),
       artistMentionSimilarity(row.youtubeTitle, resource.attributes?.artistName ?? ""),
     );
-    const durationScore = scoreDuration(row.youtubeDurationSeconds, resource.attributes?.durationInMillis ?? null);
+    const durationScore = scoreDuration(row.youtubeDurationSeconds, millisToSeconds(resource.attributes?.durationInMillis));
     const rawScore = titleSimilarity * 0.5 + artistSimilarity * 0.28 + durationScore * 0.22;
 
     return { resource, titleSimilarity, artistSimilarity, durationScore, rawScore };
@@ -258,7 +227,7 @@ function candidateOverride(
     bestAppleName: attributes.name ?? "",
     bestAppleArtist: attributes.artistName ?? "",
     bestAppleAlbum: attributes.albumName ?? "",
-    bestAppleDurationSeconds: attributes.durationInMillis ? Math.round(attributes.durationInMillis / 1000) : null,
+    bestAppleDurationSeconds: millisToSeconds(attributes.durationInMillis),
     bestAppleUrl: attributes.url ?? "",
     titleSimilarity: round(candidate.titleSimilarity),
     artistSimilarity: round(candidate.artistSimilarity),
@@ -359,25 +328,10 @@ function extractQuotedTitle(value: string): string | null {
   return match?.[1]?.trim() ?? null;
 }
 
-function artistBeforeDash(value: string): string | null {
-  const match = value.match(/^(.+?)\s[-–—]\s/);
-
-  return match?.[1]?.trim() ?? null;
-}
-
 function artistBeforeQuotedTitle(value: string): string | null {
   const match = value.match(/^(.+?)\s+[\"'“”‘’「]/);
 
   return match?.[1]?.trim() ?? null;
-}
-
-function channelArtist(value: string): string {
-  return value
-    .replace(/\bofficial\b/gi, " ")
-    .replace(/\b(channel|youtube|music|records|recordings|label|labels|topic)\b/gi, " ")
-    .replace(/\bch\.\b/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function artistMentionSimilarity(youtubeTitle: string, appleArtist: string): number {
@@ -393,22 +347,6 @@ function artistMentionSimilarity(youtubeTitle: string, appleArtist: string): num
   }
 
   return similarity(youtubeTitle, appleArtist) * 0.7;
-}
-
-function scoreDuration(youtubeDurationSeconds: number | null, appleDurationMillis: number | null): number {
-  if (!youtubeDurationSeconds || !appleDurationMillis) {
-    return 0.45;
-  }
-
-  const appleDurationSeconds = Math.round(appleDurationMillis / 1000);
-  const difference = Math.abs(youtubeDurationSeconds - appleDurationSeconds);
-
-  if (difference <= 4) return 1;
-  if (difference <= 8) return 0.92;
-  if (difference <= 15) return 0.78;
-  if (difference <= 30) return 0.56;
-  if (difference <= 60) return 0.32;
-  return 0.08;
 }
 
 function similarity(left: string, right: string): number {
@@ -430,49 +368,6 @@ function similarity(left: string, right: string): number {
 
 function tokens(value: string): string[] {
   return normalize(value).split(" ").filter((token) => token.length > 1 && !stopWords.has(token));
-}
-
-function normalize(value: string): string {
-  return value
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function cleanSearch(value: string): string {
-  return value.replace(/[|]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
-}
-
-function dedupeCandidates(candidates: AppleMusicCatalogResource[]): AppleMusicCatalogResource[] {
-  const seen = new Set<string>();
-  const deduped: AppleMusicCatalogResource[] = [];
-
-  for (const candidate of candidates) {
-    const key = `${candidate.type}:${candidate.id}`;
-
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    deduped.push(candidate);
-  }
-
-  return deduped;
-}
-
-function sleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function round(value: number): number {
-  return Math.round(value * 1000) / 1000;
 }
 
 function persist(): void {

@@ -1,4 +1,5 @@
 import rawPlaylist from "../data/raw/youtube_playlist_raw.json" with { type: "json" };
+import { findDuplicates } from "./lib/util";
 
 const expectedVideoCount = 703;
 
@@ -41,19 +42,3 @@ console.log(`Empty entries: ${emptyEntries}`);
 console.log(`Duplicate video IDs: ${duplicateVideoIds.length}`);
 console.log(`First: ${first?.title ?? "(missing title)"} | ${first?.url ?? first?.id ?? "(missing url)"}`);
 console.log(`Last: ${last?.title ?? "(missing title)"} | ${last?.url ?? last?.id ?? "(missing url)"}`);
-
-function findDuplicates(values: string[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-      continue;
-    }
-
-    seen.add(value);
-  }
-
-  return [...duplicates].sort();
-}

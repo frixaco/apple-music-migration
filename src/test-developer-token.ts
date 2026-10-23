@@ -1,4 +1,4 @@
-import { generateDeveloperToken, loadDeveloperTokenConfig } from "./apple-music-developer-token";
+import { generateDeveloperToken, loadDeveloperTokenConfig } from "./lib/apple-music-developer-token";
 
 const token = Bun.env.APPLE_MUSIC_DEVELOPER_TOKEN?.trim() || generateDeveloperToken(loadDeveloperTokenConfig()).token;
 const response = await fetch("https://api.music.apple.com/v1/test", {

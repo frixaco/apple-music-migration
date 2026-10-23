@@ -1,6 +1,9 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import rawPlaylist from "../data/raw/youtube_playlist_raw.json" with { type: "json" };
-import { AppleMusicClient, type AppleMusicCatalogResource } from "./apple-music-client";
+import { appleMusicClientFromEnv, type AppleMusicCatalogResource } from "./lib/apple-music-client";
+import { confidenceLabel, matchReportCsvPath, matchReportPath, writeMatchReport, type MatchReportItem } from "./lib/match-report";
+import { dedupeCandidates, millisToSeconds, scoreDuration } from "./lib/matching";
+import { round, sleep, unique } from "./lib/util";
 
 type YouTubeEntry = {
   id?: string;
@@ -17,33 +20,6 @@ type PlaylistManifest = {
 
 type SearchCache = Record<string, AppleMusicCatalogResource[]>;
 
-type MatchReportItem = {
-  index: number;
-  youtubeVideoId: string;
-  youtubeUrl: string;
-  youtubeTitle: string;
-  youtubeChannel: string;
-  youtubeDurationSeconds: number | null;
-  parsedArtist: string;
-  parsedTitle: string;
-  confidenceScore: 1 | 2 | 3 | 4 | 5;
-  confidenceLabel: string;
-  bestAppleId: string;
-  bestAppleType: string;
-  bestAppleName: string;
-  bestAppleArtist: string;
-  bestAppleAlbum: string;
-  bestAppleDurationSeconds: number | null;
-  bestAppleUrl: string;
-  titleSimilarity: number;
-  artistSimilarity: number;
-  durationScore: number;
-  versionScore: number;
-  rawScore: number;
-  searchQueries: string[];
-  notes: string[];
-};
-
 type CandidateScore = {
   resource: AppleMusicCatalogResource;
   rawScore: number;
@@ -54,15 +30,11 @@ type CandidateScore = {
   notes: string[];
 };
 
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
 const storefront = Bun.env.APPLE_MUSIC_STOREFRONT?.trim() || "us";
-const client = new AppleMusicClient({ developerToken, musicUserToken });
+const client = appleMusicClientFromEnv();
 const playlist = rawPlaylist as PlaylistManifest;
 const entries = playlist.entries ?? [];
 const cachePath = "data/cache/apple-catalog-search.json";
-const jsonReportPath = "data/processed/youtube_apple_music_confidence.json";
-const csvReportPath = "reports/youtube_apple_music_confidence.csv";
 const onlyMaxScore = readOptionalScoreFlag("--only-max-score");
 const stopWords = new Set([
   "the",
@@ -82,7 +54,7 @@ const stopWords = new Set([
 ]);
 const cache = loadSearchCache(cachePath);
 const report: MatchReportItem[] = [];
-const existingReport = loadExistingReport(jsonReportPath);
+const existingReport = loadExistingReport(matchReportPath);
 
 mkdirSync("data/cache", { recursive: true });
 mkdirSync("data/processed", { recursive: true });
@@ -119,18 +91,8 @@ for (const [entryIndex, entry] of entries.entries()) {
 }
 
 persistReports(report, cache);
-console.log(`Wrote ${jsonReportPath}`);
-console.log(`Wrote ${csvReportPath}`);
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
-}
+console.log(`Wrote ${matchReportPath}`);
+console.log(`Wrote ${matchReportCsvPath}`);
 
 function readOptionalScoreFlag(name: string): 1 | 2 | 3 | 4 | 5 | null {
   const flag = Bun.argv.find((argument) => argument.startsWith(`${name}=`));
@@ -259,7 +221,7 @@ function scoreCandidate(
   const attributes = resource.attributes ?? {};
   const appleName = attributes.name ?? "";
   const appleArtist = attributes.artistName ?? "";
-  const appleDurationSeconds = attributes.durationInMillis ? Math.round(attributes.durationInMillis / 1000) : null;
+  const appleDurationSeconds = millisToSeconds(attributes.durationInMillis);
   const titleSimilarity = Math.max(
     similarity(appleName, parsed.track),
     similarity(appleName, parsed.cleanedTitle),
@@ -303,7 +265,7 @@ function toReportItem(
 ): MatchReportItem {
   const score = confidenceScore(best);
   const attributes = best?.resource.attributes;
-  const durationSeconds = attributes?.durationInMillis ? Math.round(attributes.durationInMillis / 1000) : null;
+  const durationSeconds = millisToSeconds(attributes?.durationInMillis);
 
   return {
     index,
@@ -323,11 +285,11 @@ function toReportItem(
     bestAppleAlbum: attributes?.albumName ?? "",
     bestAppleDurationSeconds: durationSeconds,
     bestAppleUrl: attributes?.url ?? "",
-    titleSimilarity: roundMetric(best?.titleSimilarity ?? 0),
-    artistSimilarity: roundMetric(best?.artistSimilarity ?? 0),
-    durationScore: roundMetric(best?.durationScore ?? 0),
-    versionScore: roundMetric(best?.versionScore ?? 0),
-    rawScore: roundMetric(best?.rawScore ?? 0),
+    titleSimilarity: round(best?.titleSimilarity ?? 0),
+    artistSimilarity: round(best?.artistSimilarity ?? 0),
+    durationScore: round(best?.durationScore ?? 0),
+    versionScore: round(best?.versionScore ?? 0),
+    rawScore: round(best?.rawScore ?? 0),
     searchQueries: queries,
     notes: best?.notes ?? ["no Apple Music candidates found"],
   };
@@ -355,21 +317,6 @@ function confidenceScore(best: CandidateScore | null): 1 | 2 | 3 | 4 | 5 {
   }
 
   return 1;
-}
-
-function confidenceLabel(score: 1 | 2 | 3 | 4 | 5): string {
-  switch (score) {
-    case 5:
-      return "very likely exact Apple Music match";
-    case 4:
-      return "likely match; review version/details";
-    case 3:
-      return "possible match; manual review needed";
-    case 2:
-      return "weak match";
-    case 1:
-      return "not found or very unlikely";
-  }
 }
 
 function buildCandidateNotes(
@@ -543,21 +490,6 @@ function levenshteinDistance(left: string, right: string): number {
   return previous[right.length] ?? 0;
 }
 
-function scoreDuration(youtubeDurationSeconds: number | null, appleDurationSeconds: number | null): number {
-  if (!youtubeDurationSeconds || !appleDurationSeconds) {
-    return 0.45;
-  }
-
-  const difference = Math.abs(youtubeDurationSeconds - appleDurationSeconds);
-
-  if (difference <= 4) return 1;
-  if (difference <= 8) return 0.92;
-  if (difference <= 15) return 0.78;
-  if (difference <= 30) return 0.56;
-  if (difference <= 60) return 0.32;
-  return 0.08;
-}
-
 function scoreVersionWords(youtubeTitle: string, appleTitle: string): number {
   const youtubeWords = versionWords(youtubeTitle);
   const appleWords = versionWords(appleTitle);
@@ -585,24 +517,6 @@ function isOfficialChannelMatch(channel: string, appleArtist: string): boolean {
   return /official/i.test(channel) && similarity(cleanChannel, appleArtist) >= 0.45;
 }
 
-function dedupeCandidates(candidates: AppleMusicCatalogResource[]): AppleMusicCatalogResource[] {
-  const seen = new Set<string>();
-  const deduped: AppleMusicCatalogResource[] = [];
-
-  for (const candidate of candidates) {
-    const key = `${candidate.type}:${candidate.id}`;
-
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    deduped.push(candidate);
-  }
-
-  return deduped;
-}
-
 async function retry<T>(operation: () => Promise<T>, attempts = 4): Promise<T> {
   let lastError: unknown;
 
@@ -616,18 +530,6 @@ async function retry<T>(operation: () => Promise<T>, attempts = 4): Promise<T> {
   }
 
   throw lastError;
-}
-
-function sleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function persistReports(items: MatchReportItem[], searchCache: SearchCache): void {
-  const sortedItems = sortReportItems(items);
-
-  writeFileSync(cachePath, JSON.stringify(searchCache));
-  writeFileSync(jsonReportPath, `${JSON.stringify(sortedItems, null, 2)}\n`);
-  writeFileSync(csvReportPath, toCsv(sortedItems));
 }
 
 function loadSearchCache(path: string): SearchCache {
@@ -648,70 +550,11 @@ function loadExistingReport(path: string): Map<number, MatchReportItem> {
   return new Map(items.map((item) => [item.index, item]));
 }
 
-function toCsv(items: MatchReportItem[]): string {
-  const columns: Array<keyof MatchReportItem> = [
-    "index",
-    "confidenceScore",
-    "confidenceLabel",
-    "youtubeTitle",
-    "youtubeChannel",
-    "youtubeDurationSeconds",
-    "parsedArtist",
-    "parsedTitle",
-    "bestAppleName",
-    "bestAppleArtist",
-    "bestAppleAlbum",
-    "bestAppleType",
-    "bestAppleDurationSeconds",
-    "rawScore",
-    "titleSimilarity",
-    "artistSimilarity",
-    "durationScore",
-    "versionScore",
-    "notes",
-    "youtubeUrl",
-    "bestAppleUrl",
-    "bestAppleId",
-    "youtubeVideoId",
-    "searchQueries",
-  ];
-  const rows = items.map((item) => columns.map((column) => csvCell(item[column])).join(","));
-
-  return `${columns.join(",")}\n${rows.join("\n")}\n`;
-}
-
-function sortReportItems(items: MatchReportItem[]): MatchReportItem[] {
-  return [...items].sort((left, right) => {
-    const scoreDifference = right.confidenceScore - left.confidenceScore;
-
-    if (scoreDifference !== 0) {
-      return scoreDifference;
-    }
-
-    const rawScoreDifference = right.rawScore - left.rawScore;
-
-    if (rawScoreDifference !== 0) {
-      return rawScoreDifference;
-    }
-
-    return left.index - right.index;
-  });
-}
-
-function csvCell(value: unknown): string {
-  const stringValue = Array.isArray(value) ? value.join(" | ") : String(value ?? "");
-
-  return `"${stringValue.replaceAll("\"", "\"\"")}"`;
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
-}
-
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function roundMetric(value: number): number {
-  return Math.round(value * 1000) / 1000;
+function persistReports(items: MatchReportItem[], searchCache: SearchCache): void {
+  writeFileSync(cachePath, JSON.stringify(searchCache));
+  writeMatchReport(items);
 }

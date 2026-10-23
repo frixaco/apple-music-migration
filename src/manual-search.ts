@@ -1,14 +1,8 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { AppleMusicClient, type AppleMusicCatalogResource } from "./apple-music-client";
-
-type ManualQueueItem = {
-  index: number;
-  youtubeTitle: string;
-  youtubeChannel: string;
-  youtubeDurationSeconds: number | null;
-  priorBestAppleName: string;
-  priorBestAppleArtist: string;
-};
+import { mkdirSync, writeFileSync } from "node:fs";
+import { appleMusicClientFromEnv, type AppleMusicCatalogResource } from "./lib/apple-music-client";
+import { dedupeCandidates, millisToSeconds, normalize, scoreDuration } from "./lib/matching";
+import { readQueueItemFromIndexFlag, type ManualQueueItem } from "./lib/manual-review";
+import { readFlag, round, unique } from "./lib/util";
 
 type SearchResult = {
   id: string;
@@ -31,23 +25,10 @@ if (!indexArg) {
   throw new Error("Usage: bun run manual:search -- --index <youtube index> [--query \"artist title\"]");
 }
 
-const targetIndex = Number(indexArg);
-
-if (!Number.isInteger(targetIndex)) {
-  throw new Error("--index must be an integer.");
-}
-
-const developerToken = readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN");
-const musicUserToken = readRequiredEnv("APPLE_MUSIC_USER_TOKEN");
 const storefront = Bun.env.APPLE_MUSIC_STOREFRONT?.trim() || "uz";
-const queue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as ManualQueueItem[];
-const item = queue.find((candidate) => candidate.index === targetIndex);
+const item = readQueueItemFromIndexFlag(" Run bun run manual:init first.");
 
-if (!item) {
-  throw new Error(`Could not find queue item ${targetIndex}. Run bun run manual:init first.`);
-}
-
-const client = new AppleMusicClient({ developerToken, musicUserToken });
+const client = appleMusicClientFromEnv();
 const queries = buildQueries(item, manualQuery);
 const resources: AppleMusicCatalogResource[] = [];
 
@@ -62,7 +43,7 @@ for (const query of queries) {
   resources.push(...(response.results?.songs?.data ?? []));
 }
 
-const results = dedupe(resources)
+const results = dedupeCandidates(resources)
   .map((resource) => scoreResource(item, resource))
   .sort((left, right) => right.rawScore - left.rawScore);
 const snapshot = {
@@ -114,7 +95,7 @@ function scoreResource(item: ManualQueueItem, resource: AppleMusicCatalogResourc
   const attributes = resource.attributes ?? {};
   const name = attributes.name ?? "";
   const artist = attributes.artistName ?? "";
-  const durationSeconds = attributes.durationInMillis ? Math.round(attributes.durationInMillis / 1000) : null;
+  const durationSeconds = millisToSeconds(attributes.durationInMillis);
   const titleScore = Math.max(similarity(item.youtubeTitle, name), similarity(stripNoise(item.youtubeTitle), name));
   const artistScore = Math.max(similarity(item.youtubeChannel, artist), similarity(item.priorBestAppleArtist, artist));
   const durationScore = scoreDuration(item.youtubeDurationSeconds, durationSeconds);
@@ -135,26 +116,6 @@ function scoreResource(item: ManualQueueItem, resource: AppleMusicCatalogResourc
   };
 }
 
-function readFlag(name: string): string | null {
-  const index = Bun.argv.indexOf(name);
-
-  if (index === -1) {
-    return null;
-  }
-
-  return Bun.argv[index + 1] ?? null;
-}
-
-function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is required. Add it to .env.`);
-  }
-
-  return value;
-}
-
 function stripNoise(value: string): string {
   return value
     .replace(/\[[^\]]+\]/g, " ")
@@ -163,21 +124,6 @@ function stripNoise(value: string): string {
     .replace(/\b(official|music video|video|lyrics?|lyric video|visualizer|cover)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function scoreDuration(left: number | null, right: number | null): number {
-  if (!left || !right) {
-    return 0.45;
-  }
-
-  const difference = Math.abs(left - right);
-
-  if (difference <= 4) return 1;
-  if (difference <= 8) return 0.92;
-  if (difference <= 15) return 0.78;
-  if (difference <= 30) return 0.56;
-  if (difference <= 60) return 0.32;
-  return 0.08;
 }
 
 function similarity(left: string, right: string): number {
@@ -199,37 +145,4 @@ function similarity(left: string, right: string): number {
 
 function tokens(value: string): string[] {
   return normalize(value).split(" ").filter((token) => token.length > 1);
-}
-
-function normalize(value: string): string {
-  return value
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function dedupe(resources: AppleMusicCatalogResource[]): AppleMusicCatalogResource[] {
-  const seen = new Set<string>();
-  const result: AppleMusicCatalogResource[] = [];
-
-  for (const resource of resources) {
-    if (seen.has(resource.id)) {
-      continue;
-    }
-
-    seen.add(resource.id);
-    result.push(resource);
-  }
-
-  return result;
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
-}
-
-function round(value: number): number {
-  return Math.round(value * 1000) / 1000;
 }

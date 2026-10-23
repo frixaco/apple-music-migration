@@ -1,12 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readManualProgress, readManualQueue } from "./lib/manual-review";
 
-type ManualProgressItem = {
-  index: number;
-  status: string;
-};
-
-const queue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as unknown[];
-const progress = JSON.parse(readFileSync("data/manual-review/progress.json", "utf8")) as ManualProgressItem[];
+const queue = readManualQueue();
+const progress = readManualProgress();
 const byStatus = new Map<string, number>();
 
 for (const item of progress) {

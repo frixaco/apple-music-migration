@@ -1,10 +1,5 @@
-import { readFileSync } from "node:fs";
-import { upsertManualProgress, type ManualStatus } from "./manual-progress";
-
-type ManualQueueItem = {
-  index: number;
-  youtubeTitle: string;
-};
+import { readQueueItemFromIndexFlag, upsertManualProgress, type ManualStatus } from "./lib/manual-review";
+import { readFlag } from "./lib/util";
 
 const validStatuses = new Set<ManualStatus>([
   "found_not_added",
@@ -27,18 +22,7 @@ if (!validStatuses.has(status)) {
   throw new Error(`Invalid status "${status}".`);
 }
 
-const targetIndex = Number(indexArg);
-
-if (!Number.isInteger(targetIndex)) {
-  throw new Error("--index must be an integer.");
-}
-
-const queue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as ManualQueueItem[];
-const item = queue.find((candidate) => candidate.index === targetIndex);
-
-if (!item) {
-  throw new Error(`Could not find queue item ${targetIndex}.`);
-}
+const item = readQueueItemFromIndexFlag();
 
 upsertManualProgress({
   index: item.index,
@@ -55,13 +39,3 @@ upsertManualProgress({
 });
 
 console.log(`Recorded #${item.index}: ${status}`);
-
-function readFlag(name: string): string | null {
-  const index = Bun.argv.indexOf(name);
-
-  if (index === -1) {
-    return null;
-  }
-
-  return Bun.argv[index + 1] ?? null;
-}

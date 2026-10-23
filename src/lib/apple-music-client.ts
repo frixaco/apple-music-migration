@@ -1,3 +1,5 @@
+import { readRequiredEnv } from "./env";
+
 export type AppleMusicPage<T> = {
   data?: T[];
   next?: string;
@@ -192,4 +194,18 @@ export class AppleMusicClient {
 
     return JSON.parse(responseBody) as T;
   }
+}
+
+export function appleMusicClientFromEnv(): AppleMusicClient {
+  return new AppleMusicClient({
+    developerToken: readRequiredEnv("APPLE_MUSIC_DEVELOPER_TOKEN"),
+    musicUserToken: readRequiredEnv("APPLE_MUSIC_USER_TOKEN"),
+  });
+}
+
+export function findFavoriteSongsPlaylist(playlists: AppleMusicPlaylist[]): AppleMusicPlaylist | undefined {
+  return playlists.find((playlist) => {
+    const name = playlist.attributes?.name?.toLowerCase();
+    return name === "favorite songs" || name === "favourite songs";
+  });
 }

@@ -1,12 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-
-type QueueItem = {
-  index: number;
-  youtubeVideoId: string;
-  youtubeTitle: string;
-  youtubeUrl: string;
-  youtubeChannel: string;
-};
+import { readManualQueue } from "./lib/manual-review";
 
 type YoutubePlaylistEntry = {
   id?: string;
@@ -31,7 +24,7 @@ type ComparisonItem = {
   url: string;
 };
 
-const localQueue = JSON.parse(readFileSync("data/manual-review/queue.json", "utf8")) as QueueItem[];
+const localQueue = readManualQueue();
 const latestSnapshot = JSON.parse(readFileSync("data/raw/youtube_playlist_raw_latest.json", "utf8")) as YoutubePlaylistSnapshot;
 const latestEntries = (latestSnapshot.entries ?? []).filter((entry): entry is YoutubePlaylistEntry => entry !== null);
 const localByVideoId = new Map(localQueue.map((item) => [item.youtubeVideoId, item]));

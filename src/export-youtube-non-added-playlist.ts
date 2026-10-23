@@ -1,4 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { toCsv } from "./lib/csv";
+import { findDuplicates, formatDuration } from "./lib/util";
 
 type YoutubePlaylistEntry = {
   id?: string;
@@ -45,7 +47,7 @@ const duplicateVideoIds = findDuplicates(items.map((item) => item.videoId).filte
 mkdirSync("data/manual-review", { recursive: true });
 mkdirSync("docs", { recursive: true });
 writeFileSync("data/manual-review/youtube-non-added-playlist-current.json", `${JSON.stringify(items, null, 2)}\n`);
-writeFileSync("data/manual-review/youtube-non-added-playlist-current.csv", toCsv(items));
+writeFileSync("data/manual-review/youtube-non-added-playlist-current.csv", toCsv(items, ["index", "videoId", "title", "channel", "durationSeconds", "url"]));
 writeFileSync("docs/youtube-non-added-playlist-current.md", toMarkdown(items, unavailableItems, duplicateVideoIds));
 
 console.log(`Playlist: ${snapshot.title ?? "(untitled)"} (${snapshot.id ?? "unknown"})`);
@@ -95,45 +97,10 @@ function toList(playlistItems: ExportedPlaylistItem[]): string {
     .join("\n\n");
 }
 
-function toCsv(playlistItems: ExportedPlaylistItem[]): string {
-  const columns: Array<keyof ExportedPlaylistItem> = ["index", "videoId", "title", "channel", "durationSeconds", "url"];
-  const rows = playlistItems.map((item) => columns.map((column) => csvCell(item[column])).join(","));
-
-  return `${columns.join(",")}\n${rows.join("\n")}\n`;
-}
-
 function toYoutubeUrl(entry: YoutubePlaylistEntry): string {
   if (entry.url?.startsWith("http")) {
     return entry.url;
   }
 
   return entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : "";
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null) {
-    return "";
-  }
-
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-function csvCell(value: unknown): string {
-  return `"${String(value ?? "").replaceAll("\"", "\"\"")}"`;
-}
-
-function findDuplicates(values: string[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-      continue;
-    }
-
-    seen.add(value);
-  }
-
-  return [...duplicates].sort();
 }
