@@ -6,6 +6,7 @@
     "check": "bun run src/check-youtube-manifest.ts",
     "generate:developer-token": "bun run src/generate-developer-token.ts",
     "auth:user-token": "bun run src/start-user-token-auth.ts",
+    "auth:youtube": "bun run src/auth-youtube.ts",
     "apply:manual-overrides": "bun run src/apply-manual-overrides.ts",
     "accept:deep-review-upgrades": "bun run src/accept-deep-review-upgrades.ts",
     "accept:score-1-review-upgrades": "bun run src/accept-score-1-review-upgrades.ts",
