@@ -1,5 +1,3 @@
-export { formatDuration } from '@/lib/util'
-
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
 const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
@@ -40,4 +38,9 @@ export function formatCount(value: number): string {
 /** A count with its noun, e.g. "1 video" or "1,204 videos". */
 export function plural(count: number, noun: string): string {
   return `${formatCount(count)} ${noun}${count === 1 ? '' : 's'}`
+}
+
+export function formatDuration(seconds: number | null): string {
+  if (seconds === null) return ''
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }

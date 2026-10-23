@@ -6,10 +6,6 @@ secrets/
 *.p8
 client_secret_*.json
 
-data/processed/
-data/cache/
-reports/
-
 # Web app build output
 .nitro/
 .output/

@@ -1,6 +1,6 @@
 {
-  "include": ["src", "*.ts"],
-  "exclude": ["node_modules", "archive"],
+  "include": ["src", "scripts", "*.ts"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",

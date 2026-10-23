@@ -4,7 +4,7 @@ import { account } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { youtubeScope } from '@/lib/youtube'
 import type { Video } from '@/lib/types'
-import { chunks } from '@/lib/util'
+import { chunks } from '@/lib/utils'
 
 const apiOrigin = 'https://www.googleapis.com/youtube/v3'
 

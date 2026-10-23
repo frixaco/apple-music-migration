@@ -9,7 +9,7 @@ See README.md for the layout, setup and deploy.
   Apple Music catalog searches are fine.
 - `src/lib/matching.ts` must keep producing the same results; the original migration depends on it.
   When you touch it, compare its output over all videos in `data/raw/youtube_playlist_raw.json`
-  against the previous commit.
+  against the previous commit (kept as a fixture for this).
 - Use shadcn components for UI. Add missing ones with `npx shadcn@latest add <name>` and restyle
   them in `src/components/ui`; don't hand-roll what shadcn ships. The CLI writes a broken
   `import { cn } from "cn"`; change it to `@/lib/utils`.
@@ -24,8 +24,9 @@ See README.md for the layout, setup and deploy.
 ## Checks
 
 ```sh
-bun run typecheck && bun run lint && bun run build && bun run check
+bun run typecheck && bun run lint && bun run build
 ```
 
-ESLint skips `src/components/ui` (vendored shadcn) and the top-level scripts in `src/*.ts`.
+ESLint skips `src/components/ui` (vendored shadcn). One-off scripts go in `scripts/` and reuse
+`src/server` for API clients.
 Check UI changes in a browser with `bun run dev` (local Postgres database `migrator`).
