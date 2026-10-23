@@ -29,6 +29,10 @@ export const auth = betterAuth({
       trustedProviders: ['google'],
     },
   },
+  advanced: {
+    // Railway's edge overwrites X-Real-IP with the client's address on every request.
+    ipAddress: { ipAddressHeaders: ['x-real-ip'] },
+  },
   plugins: [tanstackStartCookies()],
 })
 
