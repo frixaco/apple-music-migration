@@ -14,7 +14,7 @@ See README.md for the layout, setup and deploy.
   them in `src/components/ui`; don't hand-roll what shadcn ships. The CLI writes a broken
   `import { cn } from "cn"`; change it to `@/lib/utils`.
 - Async state goes through TanStack Query (`src/lib/queries.ts`, mutations with `meta.invalidates`).
-- Server-only code lives in `*.server.ts` under `src/server`; server functions in `src/functions`
+- Server-only code lives in `src/server`; server functions in `src/functions`
   stay thin.
 - Never commit `.env`, `secrets/` or `*.p8`. Tokens in the database are encrypted with
   `BETTER_AUTH_SECRET`.
