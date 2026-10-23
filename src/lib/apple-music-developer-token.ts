@@ -7,7 +7,8 @@ export type AppleMusicDeveloperTokenConfig = {
   teamId: string;
   keyId: string;
   mediaId: string;
-  privateKeyPath: string;
+  /** PEM contents of the MusicKit .p8 key. */
+  privateKey: string;
 };
 
 export type GeneratedDeveloperToken = {
@@ -22,8 +23,20 @@ export function loadDeveloperTokenConfig(): AppleMusicDeveloperTokenConfig {
     teamId: readRequiredEnv("APPLE_TEAM_ID"),
     keyId: readRequiredEnv("APPLE_KEY_ID"),
     mediaId: readRequiredEnv("APPLE_MEDIA_ID"),
-    privateKeyPath: readRequiredEnv("APPLE_PRIVATE_KEY_PATH"),
+    privateKey: readPrivateKey(),
   };
+}
+
+/** Reads the key from APPLE_PRIVATE_KEY (hosted), or from the file at APPLE_PRIVATE_KEY_PATH (local). */
+function readPrivateKey(): string {
+  const inline = process.env.APPLE_PRIVATE_KEY?.trim();
+
+  if (inline) {
+    // Hosting dashboards often store multi-line values with escaped newlines.
+    return inline.replace(/\\n/g, "\n");
+  }
+
+  return readFileSync(resolve(readRequiredEnv("APPLE_PRIVATE_KEY_PATH")), "utf8");
 }
 
 export function generateDeveloperToken(
@@ -34,7 +47,6 @@ export function generateDeveloperToken(
 
   const nowSeconds = Math.floor(Date.now() / 1000);
   const expiresAtSeconds = nowSeconds + ttlSeconds;
-  const privateKey = readFileSync(resolve(config.privateKeyPath), "utf8");
   const header = { alg: "ES256", kid: config.keyId };
   const payload = {
     iss: config.teamId,
@@ -43,7 +55,7 @@ export function generateDeveloperToken(
   };
   const signingInput = `${base64UrlJson(header)}.${base64UrlJson(payload)}`;
   const signature = sign("sha256", Buffer.from(signingInput), {
-    key: privateKey,
+    key: config.privateKey,
     dsaEncoding: "ieee-p1363",
   });
 
@@ -61,8 +73,8 @@ export function validateDeveloperTokenConfig(config: AppleMusicDeveloperTokenCon
     throw new Error("APPLE_MEDIA_ID is required.");
   }
 
-  if (!config.privateKeyPath.trim()) {
-    throw new Error("APPLE_PRIVATE_KEY_PATH is required.");
+  if (!config.privateKey.includes("PRIVATE KEY")) {
+    throw new Error("APPLE_PRIVATE_KEY (or the file at APPLE_PRIVATE_KEY_PATH) must be a PEM private key.");
   }
 }
 

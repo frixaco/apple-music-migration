@@ -21,13 +21,13 @@ export function round(value: number): number {
 }
 
 export function readFlag(name: string): string | null {
-  const index = Bun.argv.indexOf(name);
+  const index = process.argv.indexOf(name);
 
   if (index === -1) {
     return null;
   }
 
-  return Bun.argv[index + 1] ?? null;
+  return process.argv[index + 1] ?? null;
 }
 
 export function findDuplicates(values: string[]): string[] {

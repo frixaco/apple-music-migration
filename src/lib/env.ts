@@ -16,7 +16,7 @@ function escapeRegExp(value: string): string {
 }
 
 export function readRequiredEnv(name: string): string {
-  const value = Bun.env[name]?.trim();
+  const value = process.env[name]?.trim();
 
   if (!value) {
     throw new Error(`${name} is required. Add it to .env.`);

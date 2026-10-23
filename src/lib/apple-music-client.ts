@@ -3,6 +3,13 @@ import { readRequiredEnv } from "./env";
 export type AppleMusicPage<T> = {
   data?: T[];
   next?: string;
+  meta?: { total?: number };
+};
+
+export type AppleMusicArtwork = {
+  url: string;
+  width?: number;
+  height?: number;
 };
 
 export type AppleMusicPlaylist = {
@@ -11,6 +18,7 @@ export type AppleMusicPlaylist = {
   attributes?: {
     name?: string;
     canEdit?: boolean;
+    dateAdded?: string;
   };
   relationships?: {
     tracks?: AppleMusicPage<AppleMusicTrack>;
@@ -24,6 +32,8 @@ export type AppleMusicTrack = {
     name?: string;
     artistName?: string;
     albumName?: string;
+    durationInMillis?: number;
+    artwork?: AppleMusicArtwork;
     playParams?: {
       catalogId?: string;
       id?: string;
@@ -42,6 +52,7 @@ export type AppleMusicCatalogResource = {
     albumName?: string;
     durationInMillis?: number;
     url?: string;
+    artwork?: AppleMusicArtwork;
   };
 };
 
@@ -81,10 +92,34 @@ export class AppleMusicClient {
 
   async getAllLibraryPlaylistTracks(playlistId: string): Promise<AppleMusicTrack[]> {
     try {
-      return await this.getAllPages<AppleMusicTrack>(`/v1/me/library/playlists/${playlistId}/tracks`);
+      return await this.getAllPages<AppleMusicTrack>(`/v1/me/library/playlists/${playlistId}/tracks?limit=100`);
     } catch (error) {
       if (String(error).includes("\"code\":\"40403\"")) {
         return [];
+      }
+
+      throw error;
+    }
+  }
+
+  async getStorefront(): Promise<string> {
+    const response = await this.get<{ data?: Array<{ id: string }> }>("/v1/me/storefront");
+    const storefront = response.data?.[0]?.id;
+
+    if (!storefront) {
+      throw new Error("Apple Music returned no storefront for this account.");
+    }
+
+    return storefront;
+  }
+
+  async getLibraryPlaylistTrackCount(playlistId: string): Promise<number> {
+    try {
+      const page = await this.get<AppleMusicPage<AppleMusicTrack>>(`/v1/me/library/playlists/${playlistId}/tracks?limit=1`);
+      return page.meta?.total ?? page.data?.length ?? 0;
+    } catch (error) {
+      if (String(error).includes("\"code\":\"40403\"")) {
+        return 0;
       }
 
       throw error;
@@ -109,6 +144,11 @@ export class AppleMusicClient {
     await this.post(`/v1/me/library/playlists/${playlistId}/tracks`, {
       data: tracks,
     });
+  }
+
+  /** Favouriting a catalog song adds it to the Favourite Songs playlist, which cannot be edited directly. */
+  async addFavoriteSongs(catalogSongIds: string[]): Promise<void> {
+    await this.post(`/v1/me/favorites?ids[songs]=${catalogSongIds.map(encodeURIComponent).join(",")}`, undefined);
   }
 
   async deleteLibrarySongRating(librarySongId: string): Promise<void> {
@@ -204,8 +244,10 @@ export function appleMusicClientFromEnv(): AppleMusicClient {
 }
 
 export function findFavoriteSongsPlaylist(playlists: AppleMusicPlaylist[]): AppleMusicPlaylist | undefined {
-  return playlists.find((playlist) => {
-    const name = playlist.attributes?.name?.toLowerCase();
-    return name === "favorite songs" || name === "favourite songs";
-  });
+  return playlists.find(isFavoriteSongsPlaylist);
+}
+
+export function isFavoriteSongsPlaylist(playlist: AppleMusicPlaylist): boolean {
+  const name = playlist.attributes?.name?.toLowerCase();
+  return name === "favorite songs" || name === "favourite songs";
 }
