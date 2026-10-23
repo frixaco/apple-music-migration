@@ -37,10 +37,14 @@ export function appleClient(musicUserToken: string): AppleMusicClient {
   })
 }
 
-export async function appleForUser(userId: string) {
-  const connection = await db.query.appleConnection.findFirst({
+export function findAppleConnection(userId: string) {
+  return db.query.appleConnection.findFirst({
     where: eq(appleConnection.userId, userId),
   })
+}
+
+export async function appleForUser(userId: string) {
+  const connection = await findAppleConnection(userId)
 
   if (!connection) {
     throw new Error('Apple Music is not connected.')
@@ -71,10 +75,12 @@ export async function addSongsToPlaylists(
   playlistIds: string[],
 ) {
   const { client } = await appleForUser(userId)
-  const playlists = await client.getAllLibraryPlaylists()
+  const playlists = new Map(
+    (await client.getAllLibraryPlaylists()).map((playlist) => [playlist.id, playlist]),
+  )
 
   for (const playlistId of playlistIds) {
-    const playlist = playlists.find((candidate) => candidate.id === playlistId)
+    const playlist = playlists.get(playlistId)
 
     if (playlist && isFavoriteSongsPlaylist(playlist)) {
       await client.addFavoriteSongs(catalogIds)
@@ -86,7 +92,5 @@ export async function addSongsToPlaylists(
     }
   }
 
-  return playlistIds.map(
-    (id) => playlists.find((playlist) => playlist.id === id)?.attributes?.name ?? id,
-  )
+  return playlistIds.map((id) => playlists.get(id)?.attributes?.name ?? id)
 }

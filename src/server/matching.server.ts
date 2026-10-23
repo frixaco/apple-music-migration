@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { match } from '@/db/schema'
 import type { Candidate, MatchStatus } from '@/lib/types'
@@ -25,7 +25,7 @@ type SearchableVideo = {
   durationSeconds: number | null
 }
 
-export function toCandidate(
+function toCandidate(
   resource: AppleMusicCatalogResource,
   score: number,
 ): Candidate {
@@ -43,7 +43,7 @@ export function toCandidate(
   }
 }
 
-export async function searchSongs(
+async function searchSongs(
   client: AppleMusicClient,
   storefront: string,
   term: string,
@@ -105,6 +105,17 @@ function statusForConfidence(confidence: number): MatchStatus {
   return 'not_found'
 }
 
+export function updateMatch(
+  userId: string,
+  videoIds: string[],
+  values: Partial<typeof match.$inferInsert>,
+) {
+  return db
+    .update(match)
+    .set(values)
+    .where(and(eq(match.userId, userId), inArray(match.videoId, videoIds)))
+}
+
 const activeRuns = new Set<string>()
 
 /**
@@ -134,10 +145,10 @@ export async function processRun(userId: string, runId: string): Promise<void> {
         const result = await findCandidates(client, storefront, item).catch(
           () => ({ query: '', confidence: 1, status: 'not_found' as const, candidates: [] }),
         )
-        await db
-          .update(match)
-          .set({ ...result, selectedCandidateId: null })
-          .where(and(eq(match.userId, userId), eq(match.videoId, item.videoId)))
+        await updateMatch(userId, [item.videoId], {
+          ...result,
+          selectedCandidateId: null,
+        })
       }
     }
 

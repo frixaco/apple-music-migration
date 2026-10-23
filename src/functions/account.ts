@@ -10,6 +10,7 @@ import {
   appleClient,
   developerToken,
   encryptMusicUserToken,
+  findAppleConnection,
 } from '@/server/apple.server'
 import { authMiddleware } from '@/server/auth-middleware'
 import { findYouTubeAccount } from '@/server/youtube.server'
@@ -24,9 +25,7 @@ export const getConnections = createServerFn()
   .handler(async ({ context }): Promise<Connections> => {
     const [youtubeAccount, apple] = await Promise.all([
       findYouTubeAccount(context.user.id),
-      db.query.appleConnection.findFirst({
-        where: eq(appleConnection.userId, context.user.id),
-      }),
+      findAppleConnection(context.user.id),
     ])
     return {
       youtube: youtubeAccount

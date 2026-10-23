@@ -111,6 +111,18 @@ export class YouTubeClient {
     await this.request('DELETE', '/playlistItems', { id: playlistItemId })
   }
 
+  /** Adds videos to a playlist, removing each from its source playlist when moving. */
+  async sendVideos(
+    targetPlaylistId: string,
+    items: Array<{ videoId: string; playlistItemId: string }>,
+    removeFromSource: boolean,
+  ): Promise<void> {
+    for (const item of items) {
+      await this.addVideo(targetPlaylistId, item.videoId)
+      if (removeFromSource) await this.removePlaylistItem(item.playlistItemId)
+    }
+  }
+
   async createPlaylist(title: string): Promise<string> {
     const playlist = await this.request<{ id: string }>(
       'POST',

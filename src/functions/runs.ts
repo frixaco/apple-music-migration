@@ -6,7 +6,11 @@ import { match, matchRun } from '@/db/schema'
 import type { MatchRun } from '@/lib/types'
 import { addSongsToPlaylists, appleForUser } from '@/server/apple.server'
 import { authMiddleware } from '@/server/auth-middleware'
-import { findCandidates, processRun } from '@/server/matching.server'
+import {
+  findCandidates,
+  processRun,
+  updateMatch,
+} from '@/server/matching.server'
 import { youtubeForUser } from '@/server/youtube.server'
 
 async function findOpenRun(userId: string) {
@@ -26,15 +30,10 @@ function runMatches(userId: string, runId: string, videoIds?: string[]) {
   })
 }
 
-function updateMatch(
-  userId: string,
-  videoIds: string[],
-  values: Partial<typeof match.$inferInsert>,
-) {
-  return db
-    .update(match)
-    .set(values)
-    .where(and(eq(match.userId, userId), inArray(match.videoId, videoIds)))
+async function requireOpenRun(userId: string) {
+  const run = await findOpenRun(userId)
+  if (!run) throw new Error('There is no open match run.')
+  return run
 }
 
 export const getOpenRun = createServerFn()
@@ -91,27 +90,25 @@ export const startRun = createServerFn({ method: 'POST' })
     const userId = context.user.id
     const { videos, ...runValues } = data
     const openRun = await findOpenRun(userId)
-    const runId = openRun
-      ? openRun.id
-      : (await db.insert(matchRun).values({ userId, ...runValues }).returning())[0].id
-
-    if (openRun) {
-      await db
-        .update(matchRun)
-        .set({
-          targetPlaylistIds: runValues.targetPlaylistIds,
-          removeFromSource: runValues.removeFromSource,
-        })
-        .where(eq(matchRun.id, runId))
-    }
+    // An open run keeps its source and takes the latest "Move to" targets.
+    const [{ id: runId }] = openRun
+      ? await db
+          .update(matchRun)
+          .set({
+            targetPlaylistIds: runValues.targetPlaylistIds,
+            removeFromSource: runValues.removeFromSource,
+          })
+          .where(eq(matchRun.id, openRun.id))
+          .returning()
+      : await db.insert(matchRun).values({ userId, ...runValues }).returning()
 
     for (const video of videos) {
       const values = {
         ...video,
         userId,
         runId,
-        sourcePlaylistId: data.sourcePlaylistId,
-        sourcePlaylistTitle: data.sourcePlaylistTitle,
+        sourcePlaylistId: runValues.sourcePlaylistId,
+        sourcePlaylistTitle: runValues.sourcePlaylistTitle,
         status: 'searching' as const,
         query: '',
         confidence: null,
@@ -184,8 +181,7 @@ export const addToApple = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     const userId = context.user.id
-    const run = await findOpenRun(userId)
-    if (!run) throw new Error('There is no open match run.')
+    const run = await requireOpenRun(userId)
 
     const chosen = (await runMatches(userId, run.id, data.videoIds)).flatMap((item) => {
       const songId = item.selectedCandidateId ?? item.candidates[0]?.id
@@ -228,16 +224,14 @@ export const moveToYouTube = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     const userId = context.user.id
-    const run = await findOpenRun(userId)
-    if (!run) throw new Error('There is no open match run.')
+    const run = await requireOpenRun(userId)
 
     const youtube = await youtubeForUser(userId)
-    for (const item of await runMatches(userId, run.id, data.videoIds)) {
-      await youtube.addVideo(data.playlistId, item.videoId)
-      if (data.removeFromSource) {
-        await youtube.removePlaylistItem(item.playlistItemId)
-      }
-    }
+    await youtube.sendVideos(
+      data.playlistId,
+      await runMatches(userId, run.id, data.videoIds),
+      data.removeFromSource,
+    )
 
     await updateMatch(userId, data.videoIds, {
       status: 'done',

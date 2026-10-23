@@ -2,12 +2,13 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { appleConnection, match, pinnedPlaylist } from '@/db/schema'
+import { match, pinnedPlaylist } from '@/db/schema'
 import type { Playlist, Song, Video } from '@/lib/types'
 import {
   addSongsToPlaylists,
   appleForUser,
   artworkUrl,
+  findAppleConnection,
 } from '@/server/apple.server'
 import { authMiddleware } from '@/server/auth-middleware'
 import { findYouTubeAccount, youtubeForUser } from '@/server/youtube.server'
@@ -26,9 +27,7 @@ export const listPlaylists = createServerFn()
         orderBy: pinnedPlaylist.pinnedAt,
       }),
       findYouTubeAccount(userId),
-      db.query.appleConnection.findFirst({
-        where: eq(appleConnection.userId, userId),
-      }),
+      findAppleConnection(userId),
     ])
     const pinned = new Set(pins.map((pin) => `${pin.service}:${pin.playlistId}`))
 
@@ -109,10 +108,18 @@ export const listVideos = createServerFn()
   .handler(async ({ data, context }): Promise<Video[]> => {
     const youtube = await youtubeForUser(context.user.id)
     const videos = await youtube.listVideos(data.playlistId)
-    const matches = await db.query.match.findMany({
-      columns: { videoId: true, status: true, outcome: true },
-      where: eq(match.userId, context.user.id),
-    })
+    const matches = videos.length
+      ? await db.query.match.findMany({
+          columns: { videoId: true, status: true, outcome: true },
+          where: and(
+            eq(match.userId, context.user.id),
+            inArray(
+              match.videoId,
+              videos.map((video) => video.videoId),
+            ),
+          ),
+        })
+      : []
     const matchByVideo = new Map(matches.map((item) => [item.videoId, item]))
 
     return videos.map((video) => {
@@ -182,13 +189,7 @@ export const sendVideos = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     const youtube = await youtubeForUser(context.user.id)
-
-    for (const item of data.items) {
-      await youtube.addVideo(data.targetPlaylistId, item.videoId)
-      if (data.removeFromSource) {
-        await youtube.removePlaylistItem(item.playlistItemId)
-      }
-    }
+    await youtube.sendVideos(data.targetPlaylistId, data.items, data.removeFromSource)
   })
 
 export const removeVideos = createServerFn({ method: 'POST' })
