@@ -16,6 +16,7 @@ import {
   ListToolbar,
   SelectAllHead,
   SelectRowCell,
+  VirtualRows,
 } from '@/components/list-layout'
 import { AddToAppleMenu, MoveMenu } from '@/components/playlist-menus'
 import { Button } from '@/components/ui/button'
@@ -255,16 +256,25 @@ function OpenRun({ run }: { run: MatchRun }) {
             </TableRow>
           </TableHeader>
           <TableBody {...selection.bodyProps}>
-            {visible.map((item) => (
-              <MatchRow
-                key={item.videoId}
-                item={item}
-                selected={selection.isSelected(item.videoId)}
-                active={item.videoId === active?.videoId}
-                onShow={detail.show}
-                onToggle={selection.toggle}
-              />
-            ))}
+            <VirtualRows
+              items={visible}
+              columns={6}
+              estimateSize={28}
+              getKey={(item) => item.videoId}
+            >
+              {(item, index, measureRef) => (
+                <MatchRow
+                  key={item.videoId}
+                  index={index}
+                  measureRef={measureRef}
+                  item={item}
+                  selected={selection.isSelected(item.videoId)}
+                  active={item.videoId === active?.videoId}
+                  onShow={detail.show}
+                  onToggle={selection.toggle}
+                />
+              )}
+            </VirtualRows>
           </TableBody>
         </Table>
         <ListFooter
@@ -286,12 +296,16 @@ function OpenRun({ run }: { run: MatchRun }) {
 
 /** Memoized so dragging a selection re-renders only the rows whose state changed. */
 const MatchRow = memo(function MatchRow({
+  index,
+  measureRef,
   item,
   selected,
   active,
   onShow,
   onToggle,
 }: {
+  index: number
+  measureRef: (row: Element | null) => void
   item: Match
   selected: boolean
   active: boolean
@@ -301,6 +315,8 @@ const MatchRow = memo(function MatchRow({
   const option = bestOption(item)
   return (
     <TableRow
+      ref={measureRef}
+      data-index={index}
       data-state={selected ? 'selected' : undefined}
       data-active={active}
       onClick={() => onShow(item.videoId)}

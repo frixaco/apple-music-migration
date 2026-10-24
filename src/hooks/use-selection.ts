@@ -14,9 +14,9 @@ const isMac =
 /**
  * Checkbox selection over a list; ids that leave the list drop out of the selection.
  *
- * Spread `bodyProps` on the list's `<TableBody>`, whose rows must be in the same order as `ids`,
- * to select by dragging: a plain drag replaces the selection with the dragged rows, Shift adds
- * them and Ctrl (or ⌘) removes them. Shift- and Ctrl-clicking a single row adds or removes it.
+ * Spread `bodyProps` on the list's `<TableBody>`, whose rows carry their position in `ids` as
+ * `data-index` (see `VirtualRows`), to select by dragging: a plain drag replaces the selection
+ * with the dragged rows, Shift adds them and Ctrl (or ⌘) removes them. Shift- and Ctrl-clicking a single row adds or removes it.
  * Dragging past the top or bottom of the scrolling container scrolls it.
  */
 export function useSelection(ids: string[]) {
@@ -45,7 +45,7 @@ export function useSelection(ids: string[]) {
   const startDrag = (event: ReactMouseEvent<HTMLTableSectionElement>) => {
     const body = event.currentTarget
     const target = event.target as Element
-    const row = target.closest('tr')
+    const row = target.closest<HTMLElement>('tr[data-index]')
     const container = body.closest<HTMLElement>('[data-slot="table-container"]')
     if (event.button !== 0 || !row || row.parentElement !== body || !container)
       return
@@ -66,7 +66,7 @@ export function useSelection(ids: string[]) {
           : 'replace'
     // Hidden rows keep their selection, as they do when a checkbox is toggled.
     const base = latest.current.selected
-    const anchor = row.sectionRowIndex
+    const anchor = Number(row.dataset.index)
     let current = anchor
     // A plain press only becomes a drag once it reaches another row; until then it is a click.
     let started = mode !== 'replace'
@@ -89,8 +89,10 @@ export function useSelection(ids: string[]) {
       setSelected(next)
     }
 
+    /** The list index of the rendered row at this height, if any row is rendered. */
     const rowAt = (y: number) => {
-      const rows = body.rows
+      const rows = body.querySelectorAll<HTMLElement>(':scope > tr[data-index]')
+      if (!rows.length) return undefined
       let low = 0
       let high = rows.length - 1
       while (low < high) {
@@ -98,7 +100,7 @@ export function useSelection(ids: string[]) {
         if (rows[middle].getBoundingClientRect().bottom <= y) low = middle + 1
         else high = middle
       }
-      return low
+      return Number(rows[low].dataset.index)
     }
 
     let frame = 0
@@ -127,7 +129,7 @@ export function useSelection(ids: string[]) {
         if (step) container.scrollTop += step
       }
       const index = rowAt(Math.min(Math.max(pointerY, top), rect.bottom - 1))
-      if (body.rows.length && index !== current) {
+      if (index !== undefined && index !== current) {
         current = index
         started = true
         apply()
@@ -141,6 +143,11 @@ export function useSelection(ids: string[]) {
       if (!(moveEvent.buttons & 1)) return stop()
       pointerY = moveEvent.clientY
       if (Math.abs(pointerY - startY) > dragThreshold) moved = true
+    }
+    // A Ctrl press on macOS is a context-menu gesture, so once the pointer leaves the window
+    // Chrome sends no more moves; keep scrolling from where it left.
+    const leave = (outEvent: MouseEvent) => {
+      if (!outEvent.relatedTarget) pointerY = outEvent.clientY
     }
     const up = () => {
       stop()
@@ -159,12 +166,14 @@ export function useSelection(ids: string[]) {
       cancelAnimationFrame(frame)
       body.style.pointerEvents = ''
       window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseout', leave)
       window.removeEventListener('mouseup', up)
       stopDrag.current = undefined
     }
 
     stopDrag.current = stop
     window.addEventListener('mousemove', move)
+    window.addEventListener('mouseout', leave)
     window.addEventListener('mouseup', up)
     if (started) apply()
     frame = requestAnimationFrame(tick)

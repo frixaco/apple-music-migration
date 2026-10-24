@@ -1,4 +1,6 @@
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { SearchIcon } from 'lucide-react'
+import { useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -170,6 +172,59 @@ export function SelectRowCell({
         onCheckedChange={(value) => onToggle(id, value === true)}
       />
     </TableCell>
+  )
+}
+
+/**
+ * The rows of a long list, rendering only those near the visible part of the table's scrolling
+ * container. Each row must pass `index` as `data-index` and `measureRef` as its `ref`.
+ */
+export function VirtualRows<T>({
+  items,
+  columns,
+  estimateSize,
+  getKey,
+  children,
+}: {
+  items: T[]
+  /** Number of columns, for the spacer rows above and below. */
+  columns: number
+  /** Row height in pixels before it is measured. */
+  estimateSize: number
+  getKey: (item: T) => string
+  children: (
+    item: T,
+    index: number,
+    measureRef: (row: Element | null) => void,
+  ) => ReactNode
+}) {
+  const spacer = useRef<HTMLTableRowElement>(null)
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () =>
+      spacer.current?.closest('[data-slot="table-container"]') ?? null,
+    estimateSize: () => estimateSize,
+    getItemKey: (index) => getKey(items[index]),
+    overscan: 12,
+    // Rows the server renders before the container has been measured.
+    initialRect: { width: 0, height: 1200 },
+  })
+  const rows = virtualizer.getVirtualItems()
+  const before = rows.at(0)?.start ?? 0
+  const after = virtualizer.getTotalSize() - (rows.at(-1)?.end ?? 0)
+
+  return (
+    <>
+      <tr ref={spacer} aria-hidden>
+        <td colSpan={columns} style={{ height: before, padding: 0 }} />
+      </tr>
+      {rows.map((row) =>
+        children(items[row.index], row.index, virtualizer.measureElement),
+      )}
+      <tr aria-hidden>
+        <td colSpan={columns} style={{ height: after, padding: 0 }} />
+      </tr>
+    </>
   )
 }
 

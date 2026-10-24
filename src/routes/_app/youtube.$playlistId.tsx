@@ -14,6 +14,7 @@ import {
   PlaylistHeader,
   SelectAllHead,
   SelectRowCell,
+  VirtualRows,
 } from '@/components/list-layout'
 import { MoveMenu } from '@/components/playlist-menus'
 import { PlaylistLabel } from '@/components/playlist-label'
@@ -287,16 +288,25 @@ function YouTubePlaylist() {
             </TableRow>
           </TableHeader>
           <TableBody {...selection.bodyProps}>
-            {visible.map((video) => (
-              <VideoRow
-                key={video.videoId}
-                video={video}
-                selected={selection.isSelected(video.videoId)}
-                active={video.videoId === active?.videoId}
-                onShow={detail.show}
-                onToggle={selection.toggle}
-              />
-            ))}
+            <VirtualRows
+              items={visible}
+              columns={6}
+              estimateSize={28}
+              getKey={(video) => video.videoId}
+            >
+              {(video, index, measureRef) => (
+                <VideoRow
+                  key={video.videoId}
+                  index={index}
+                  measureRef={measureRef}
+                  video={video}
+                  selected={selection.isSelected(video.videoId)}
+                  active={video.videoId === active?.videoId}
+                  onShow={detail.show}
+                  onToggle={selection.toggle}
+                />
+              )}
+            </VirtualRows>
           </TableBody>
         </Table>
         <ListFooter
@@ -343,12 +353,16 @@ function YouTubePlaylist() {
 
 /** Memoized so dragging a selection re-renders only the rows whose state changed. */
 const VideoRow = memo(function VideoRow({
+  index,
+  measureRef,
   video,
   selected,
   active,
   onShow,
   onToggle,
 }: {
+  index: number
+  measureRef: (row: Element | null) => void
   video: Video
   selected: boolean
   active: boolean
@@ -357,6 +371,8 @@ const VideoRow = memo(function VideoRow({
 }) {
   return (
     <TableRow
+      ref={measureRef}
+      data-index={index}
       data-state={selected ? 'selected' : undefined}
       data-active={active}
       onClick={() => onShow(video.videoId)}

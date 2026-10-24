@@ -13,6 +13,7 @@ import {
   PlaylistHeader,
   SelectAllHead,
   SelectRowCell,
+  VirtualRows,
 } from '@/components/list-layout'
 import { AddToAppleMenu } from '@/components/playlist-menus'
 import { Button } from '@/components/ui/button'
@@ -164,16 +165,25 @@ function ApplePlaylist() {
             </TableRow>
           </TableHeader>
           <TableBody {...selection.bodyProps}>
-            {visible.map((song) => (
-              <SongRow
-                key={song.id}
-                song={song}
-                selected={selection.isSelected(song.id)}
-                active={song.id === active?.id}
-                onShow={detail.show}
-                onToggle={selection.toggle}
-              />
-            ))}
+            <VirtualRows
+              items={visible}
+              columns={7}
+              estimateSize={36}
+              getKey={(song) => song.id}
+            >
+              {(song, index, measureRef) => (
+                <SongRow
+                  key={song.id}
+                  index={index}
+                  measureRef={measureRef}
+                  song={song}
+                  selected={selection.isSelected(song.id)}
+                  active={song.id === active?.id}
+                  onShow={detail.show}
+                  onToggle={selection.toggle}
+                />
+              )}
+            </VirtualRows>
           </TableBody>
         </Table>
         <ListFooter
@@ -274,12 +284,16 @@ function ApplePlaylist() {
 
 /** Memoized so dragging a selection re-renders only the rows whose state changed. */
 const SongRow = memo(function SongRow({
+  index,
+  measureRef,
   song,
   selected,
   active,
   onShow,
   onToggle,
 }: {
+  index: number
+  measureRef: (row: Element | null) => void
   song: Song
   selected: boolean
   active: boolean
@@ -288,6 +302,8 @@ const SongRow = memo(function SongRow({
 }) {
   return (
     <TableRow
+      ref={measureRef}
+      data-index={index}
       data-state={selected ? 'selected' : undefined}
       data-active={active}
       onClick={() => onShow(song.id)}
