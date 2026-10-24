@@ -545,13 +545,15 @@ function VideoTitle({
     <HoverCard openDelay={300} closeDelay={0}>
       <HoverCardTrigger asChild>
         <div className="flex min-w-0 items-center gap-2">
-          {video.thumbnailUrl && (
+          {video.thumbnailUrl ? (
             <img
               src={video.thumbnailUrl}
               alt=""
               loading="lazy"
-              className="aspect-video w-16 shrink-0 rounded-sm object-cover md:hidden"
+              className="aspect-video w-16 shrink-0 rounded-sm object-cover md:w-11"
             />
+          ) : (
+            <div className="aspect-video w-16 shrink-0 rounded-sm bg-muted md:w-11" />
           )}
           <div className="min-w-0">
             <div className="truncate">{video.title}</div>
