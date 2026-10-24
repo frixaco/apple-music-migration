@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ChevronDownIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel, DetailRow } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
@@ -43,6 +43,7 @@ import { removeVideos, sendVideos } from '@/functions/playlists'
 import { startRun } from '@/functions/runs'
 import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
+import type { Selection } from '@/hooks/use-selection'
 import { formatCount, formatDuration, plural, timeAgo } from '@/lib/format'
 import { playlistsQuery, videosQuery } from '@/lib/queries'
 import type { Playlist, Video } from '@/lib/types'
@@ -287,42 +288,14 @@ function YouTubePlaylist() {
           </TableHeader>
           <TableBody {...selection.bodyProps}>
             {visible.map((video) => (
-              <TableRow
+              <VideoRow
                 key={video.videoId}
-                data-state={
-                  selection.isSelected(video.videoId) ? 'selected' : undefined
-                }
-                data-active={video.videoId === active?.videoId}
-                onClick={() => detail.show(video)}
-                className="cursor-default max-md:h-14"
-              >
-                <SelectRowCell
-                  selection={selection}
-                  id={video.videoId}
-                  label={video.title}
-                />
-                <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
-                  {video.position}
-                </TableCell>
-                <TableCell className="max-w-0">
-                  <VideoTitle video={video} />
-                </TableCell>
-                <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
-                  {video.channel}
-                </TableCell>
-                <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
-                  {formatDuration(video.durationSeconds)}
-                </TableCell>
-                <TableCell className="max-w-0 truncate max-md:hidden">
-                  <span
-                    className={
-                      video.match?.status === 'done' ? undefined : 'text-subtle'
-                    }
-                  >
-                    {appleStatus(video)}
-                  </span>
-                </TableCell>
-              </TableRow>
+                video={video}
+                selected={selection.isSelected(video.videoId)}
+                active={video.videoId === active?.videoId}
+                onShow={detail.show}
+                onToggle={selection.toggle}
+              />
             ))}
           </TableBody>
         </Table>
@@ -367,6 +340,56 @@ function YouTubePlaylist() {
     </>
   )
 }
+
+/** Memoized so dragging a selection re-renders only the rows whose state changed. */
+const VideoRow = memo(function VideoRow({
+  video,
+  selected,
+  active,
+  onShow,
+  onToggle,
+}: {
+  video: Video
+  selected: boolean
+  active: boolean
+  onShow: (id: string) => void
+  onToggle: Selection['toggle']
+}) {
+  return (
+    <TableRow
+      data-state={selected ? 'selected' : undefined}
+      data-active={active}
+      onClick={() => onShow(video.videoId)}
+      className="cursor-default max-md:h-14"
+    >
+      <SelectRowCell
+        id={video.videoId}
+        label={video.title}
+        checked={selected}
+        onToggle={onToggle}
+      />
+      <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
+        {video.position}
+      </TableCell>
+      <TableCell className="max-w-0">
+        <VideoTitle video={video} />
+      </TableCell>
+      <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
+        {video.channel}
+      </TableCell>
+      <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
+        {formatDuration(video.durationSeconds)}
+      </TableCell>
+      <TableCell className="max-w-0 truncate max-md:hidden">
+        <span
+          className={video.match?.status === 'done' ? undefined : 'text-subtle'}
+        >
+          {appleStatus(video)}
+        </span>
+      </TableCell>
+    </TableRow>
+  )
+})
 
 function VideoTitle({ video }: { video: Video }) {
   return (

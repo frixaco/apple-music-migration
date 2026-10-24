@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ChevronDownIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
 import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
@@ -33,6 +33,7 @@ import {
 import { addSongs, removeFavorites } from '@/functions/playlists'
 import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
+import type { Selection } from '@/hooks/use-selection'
 import {
   formatCount,
   formatDifference,
@@ -164,44 +165,14 @@ function ApplePlaylist() {
           </TableHeader>
           <TableBody {...selection.bodyProps}>
             {visible.map((song) => (
-              <TableRow
+              <SongRow
                 key={song.id}
-                data-state={
-                  selection.isSelected(song.id) ? 'selected' : undefined
-                }
-                data-active={song.id === active?.id}
-                onClick={() => detail.show(song)}
-                className="h-9 cursor-default"
-              >
-                <SelectRowCell
-                  selection={selection}
-                  id={song.id}
-                  label={song.name}
-                />
-                <TableCell className="px-0">
-                  <Artwork song={song} />
-                </TableCell>
-                <TableCell className="max-w-0">
-                  <div className="truncate">{song.name}</div>
-                  <div className="truncate text-[11px] text-subtle md:hidden">
-                    {song.artist}
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-0 truncate text-muted-foreground max-md:hidden">
-                  {song.artist}
-                </TableCell>
-                <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
-                  {song.album}
-                </TableCell>
-                <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
-                  {formatDuration(song.durationSeconds)}
-                </TableCell>
-                <TableCell className="max-w-0 truncate font-mono text-[11px] text-subtle max-lg:hidden">
-                  {song.source
-                    ? `${song.source.sourcePlaylistTitle} #${song.source.position}`
-                    : '—'}
-                </TableCell>
-              </TableRow>
+                song={song}
+                selected={selection.isSelected(song.id)}
+                active={song.id === active?.id}
+                onShow={detail.show}
+                onToggle={selection.toggle}
+              />
             ))}
           </TableBody>
         </Table>
@@ -300,6 +271,60 @@ function ApplePlaylist() {
     </>
   )
 }
+
+/** Memoized so dragging a selection re-renders only the rows whose state changed. */
+const SongRow = memo(function SongRow({
+  song,
+  selected,
+  active,
+  onShow,
+  onToggle,
+}: {
+  song: Song
+  selected: boolean
+  active: boolean
+  onShow: (id: string) => void
+  onToggle: Selection['toggle']
+}) {
+  return (
+    <TableRow
+      data-state={selected ? 'selected' : undefined}
+      data-active={active}
+      onClick={() => onShow(song.id)}
+      className="h-9 cursor-default"
+    >
+      <SelectRowCell
+        id={song.id}
+        label={song.name}
+        checked={selected}
+        onToggle={onToggle}
+      />
+      <TableCell className="px-0">
+        <Artwork song={song} />
+      </TableCell>
+      <TableCell className="max-w-0">
+        <div className="truncate">{song.name}</div>
+        <div className="truncate text-[11px] text-subtle md:hidden">
+          {song.artist}
+        </div>
+      </TableCell>
+      <TableCell className="max-w-0 truncate text-muted-foreground max-md:hidden">
+        {song.artist}
+      </TableCell>
+      <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
+        {song.album}
+      </TableCell>
+      <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
+        {formatDuration(song.durationSeconds)}
+      </TableCell>
+      <TableCell className="max-w-0 truncate font-mono text-[11px] text-subtle max-lg:hidden">
+        {song.source
+          ? `${song.source.sourcePlaylistTitle} #${song.source.position}`
+          : '—'}
+      </TableCell>
+    </TableRow>
+  )
+})
 
 function Artwork({ song }: { song: Song }) {
   if (!song.artworkUrl) return <div className="size-6 rounded-sm bg-muted" />

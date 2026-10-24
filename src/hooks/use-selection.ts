@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 
 /** Distance from the visible top or bottom edge of the list where dragging starts to scroll it. */
 const scrollEdge = 24
-const maxScrollSpeed = 30
+/** Fastest auto-scroll, in pixels per millisecond. */
+const maxScrollSpeed = 1.8
+/** How far the pointer must move before a press counts as a drag that can scroll. */
+const dragThreshold = 4
+
+const isMac =
+  typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent)
 
 /**
  * Checkbox selection over a list; ids that leave the list drop out of the selection.
@@ -20,19 +26,36 @@ export function useSelection(ids: string[]) {
     [ids, selected],
   )
 
-  const latest = useRef({ ids, selected: visible })
-  latest.current = { ids, selected: visible }
+  const latest = useRef({ ids, selected })
+  latest.current = { ids, selected }
   const stopDrag = useRef<(() => void) | undefined>(undefined)
   useEffect(() => () => stopDrag.current?.(), [])
 
+  const toggle = useCallback(
+    (id: string, checked: boolean) =>
+      setSelected((current) => {
+        const next = new Set(current)
+        if (checked) next.add(id)
+        else next.delete(id)
+        return next
+      }),
+    [],
+  )
+
   const startDrag = (event: ReactMouseEvent<HTMLTableSectionElement>) => {
     const body = event.currentTarget
-    const row = (event.target as Element).closest('tr')
+    const target = event.target as Element
+    const row = target.closest('tr')
     const container = body.closest<HTMLElement>('[data-slot="table-container"]')
     if (event.button !== 0 || !row || row.parentElement !== body || !container)
       return
-    // No text selection or native image drag while selecting rows.
+    // No text selection or native image drag while selecting rows. That also stops focus from
+    // moving, so move it by hand: onto a pressed control, otherwise away from e.g. the filter.
     event.preventDefault()
+    const control = target.closest<HTMLElement>('button, a, input')
+    if (control) control.focus({ preventScroll: true })
+    else if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur()
     stopDrag.current?.()
 
     const mode =
@@ -41,12 +64,16 @@ export function useSelection(ids: string[]) {
         : event.shiftKey
           ? 'add'
           : 'replace'
+    // Hidden rows keep their selection, as they do when a checkbox is toggled.
     const base = latest.current.selected
     const anchor = row.sectionRowIndex
     let current = anchor
     // A plain press only becomes a drag once it reaches another row; until then it is a click.
     let started = mode !== 'replace'
-    let pointerY = event.clientY
+    // Only a press that has moved scrolls, so a modifier click on an edge row stays a click.
+    let moved = false
+    const startY = event.clientY
+    let pointerY = startY
 
     const apply = () => {
       const range = latest.current.ids.slice(
@@ -75,24 +102,29 @@ export function useSelection(ids: string[]) {
     }
 
     let frame = 0
-    const tick = () => {
+    let lastTime: number | undefined
+    let scrollCarry = 0
+    const tick = (time: number) => {
+      const elapsed = Math.min(time - (lastTime ?? time), 50)
+      lastTime = time
       const rect = container.getBoundingClientRect()
       const top =
         rect.top + (container.querySelector('thead')?.offsetHeight ?? 0)
-      if (started) {
+      if (started && moved) {
         const overshoot =
           pointerY < top + scrollEdge
             ? pointerY - top - scrollEdge
             : pointerY > rect.bottom - scrollEdge
               ? pointerY - rect.bottom + scrollEdge
               : 0
-        if (overshoot)
-          container.scrollTop +=
-            Math.sign(overshoot) *
-            Math.min(
-              maxScrollSpeed,
-              Math.max(1, Math.round(Math.abs(overshoot) / 3)),
-            )
+        // Faster the further past the edge, at the same speed on any refresh rate.
+        scrollCarry +=
+          Math.sign(overshoot) *
+          Math.min(maxScrollSpeed, Math.abs(overshoot) / 50) *
+          elapsed
+        const step = Math.trunc(scrollCarry)
+        scrollCarry -= step
+        if (step) container.scrollTop += step
       }
       const index = rowAt(Math.min(Math.max(pointerY, top), rect.bottom - 1))
       if (body.rows.length && index !== current) {
@@ -100,12 +132,15 @@ export function useSelection(ids: string[]) {
         started = true
         apply()
       }
+      // While dragging, rows ignore the pointer so their hover cards stay closed.
+      if (started && moved) body.style.pointerEvents = 'none'
       frame = requestAnimationFrame(tick)
     }
 
     const move = (moveEvent: MouseEvent) => {
-      if (moveEvent.buttons & 1) pointerY = moveEvent.clientY
-      else stop()
+      if (!(moveEvent.buttons & 1)) return stop()
+      pointerY = moveEvent.clientY
+      if (Math.abs(pointerY - startY) > dragThreshold) moved = true
     }
     const up = () => {
       stop()
@@ -122,6 +157,7 @@ export function useSelection(ids: string[]) {
     }
     const stop = () => {
       cancelAnimationFrame(frame)
+      body.style.pointerEvents = ''
       window.removeEventListener('mousemove', move)
       window.removeEventListener('mouseup', up)
       stopDrag.current = undefined
@@ -137,13 +173,8 @@ export function useSelection(ids: string[]) {
   return {
     selected: visible,
     isSelected: (id: string) => visible.has(id),
-    toggle: (id: string, checked: boolean) =>
-      setSelected((current) => {
-        const next = new Set(current)
-        if (checked) next.add(id)
-        else next.delete(id)
-        return next
-      }),
+    /** Stable, so memoized rows can take it. */
+    toggle,
     /** State for the header checkbox. */
     allState:
       visible.size === 0
@@ -158,7 +189,7 @@ export function useSelection(ids: string[]) {
       onMouseDown: startDrag,
       // On macOS Ctrl-click opens the context menu instead of removing the row.
       onContextMenu: (event: ReactMouseEvent) => {
-        if (event.ctrlKey) event.preventDefault()
+        if (isMac && event.ctrlKey) event.preventDefault()
       },
     },
   }

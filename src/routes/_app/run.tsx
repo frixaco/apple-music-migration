@@ -6,7 +6,7 @@ import {
   SearchIcon,
   SearchXIcon,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
 import {
@@ -50,6 +50,7 @@ import {
 } from '@/functions/runs'
 import { useActiveRow } from '@/hooks/use-active-row'
 import { useSelection } from '@/hooks/use-selection'
+import type { Selection } from '@/hooks/use-selection'
 import { formatDifference, formatDuration, timeAgo } from '@/lib/format'
 import { runQuery } from '@/lib/queries'
 import type { Match, MatchRun } from '@/lib/types'
@@ -254,52 +255,16 @@ function OpenRun({ run }: { run: MatchRun }) {
             </TableRow>
           </TableHeader>
           <TableBody {...selection.bodyProps}>
-            {visible.map((item) => {
-              const option = bestOption(item)
-              return (
-                <TableRow
-                  key={item.videoId}
-                  data-state={
-                    selection.isSelected(item.videoId) ? 'selected' : undefined
-                  }
-                  data-active={item.videoId === active?.videoId}
-                  onClick={() => detail.show(item)}
-                  className="cursor-default max-md:h-12"
-                >
-                  <SelectRowCell
-                    selection={selection}
-                    id={item.videoId}
-                    label={item.title}
-                  />
-                  <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
-                    {item.position}
-                  </TableCell>
-                  <TableCell className="max-w-0">
-                    <div className="truncate">{item.title}</div>
-                    <div className="truncate font-mono text-[11px] text-subtle md:hidden">
-                      #{item.position} · {item.candidates.length} options
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
-                    {item.status === 'searching' ? (
-                      <Spinner className="text-subtle" />
-                    ) : item.status === 'done' ? (
-                      item.outcome
-                    ) : option ? (
-                      `${option.name} — ${option.artist}`
-                    ) : (
-                      <span className="text-subtle">No match</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
-                    {item.confidence ? `${item.confidence}/5` : ''}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
-                    {item.status === 'searching' ? '' : item.candidates.length}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+            {visible.map((item) => (
+              <MatchRow
+                key={item.videoId}
+                item={item}
+                selected={selection.isSelected(item.videoId)}
+                active={item.videoId === active?.videoId}
+                onShow={detail.show}
+                onToggle={selection.toggle}
+              />
+            ))}
           </TableBody>
         </Table>
         <ListFooter
@@ -318,6 +283,64 @@ function OpenRun({ run }: { run: MatchRun }) {
     </>
   )
 }
+
+/** Memoized so dragging a selection re-renders only the rows whose state changed. */
+const MatchRow = memo(function MatchRow({
+  item,
+  selected,
+  active,
+  onShow,
+  onToggle,
+}: {
+  item: Match
+  selected: boolean
+  active: boolean
+  onShow: (id: string) => void
+  onToggle: Selection['toggle']
+}) {
+  const option = bestOption(item)
+  return (
+    <TableRow
+      data-state={selected ? 'selected' : undefined}
+      data-active={active}
+      onClick={() => onShow(item.videoId)}
+      className="cursor-default max-md:h-12"
+    >
+      <SelectRowCell
+        id={item.videoId}
+        label={item.title}
+        checked={selected}
+        onToggle={onToggle}
+      />
+      <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
+        {item.position}
+      </TableCell>
+      <TableCell className="max-w-0">
+        <div className="truncate">{item.title}</div>
+        <div className="truncate font-mono text-[11px] text-subtle md:hidden">
+          #{item.position} · {item.candidates.length} options
+        </div>
+      </TableCell>
+      <TableCell className="max-w-0 truncate text-muted-foreground max-lg:hidden">
+        {item.status === 'searching' ? (
+          <Spinner className="text-subtle" />
+        ) : item.status === 'done' ? (
+          item.outcome
+        ) : option ? (
+          `${option.name} — ${option.artist}`
+        ) : (
+          <span className="text-subtle">No match</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right font-mono text-[11px] text-muted-foreground max-md:hidden">
+        {item.confidence ? `${item.confidence}/5` : ''}
+      </TableCell>
+      <TableCell className="text-right font-mono text-[11px] text-subtle max-md:hidden">
+        {item.status === 'searching' ? '' : item.candidates.length}
+      </TableCell>
+    </TableRow>
+  )
+})
 
 /** The Apple Music options for one video: search again, pick one, or mark it not found. */
 function MatchOptions({

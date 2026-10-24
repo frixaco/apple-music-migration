@@ -152,20 +152,22 @@ export function SelectAllHead({ selection }: { selection: Selection }) {
 
 /** The checkbox cell of a row; clicking it doesn't open the row's details. */
 export function SelectRowCell({
-  selection,
   id,
   label,
+  checked,
+  onToggle,
 }: {
-  selection: Selection
   id: string
   label: string
+  checked: boolean
+  onToggle: Selection['toggle']
 }) {
   return (
     <TableCell onClick={(event) => event.stopPropagation()}>
       <Checkbox
         aria-label={`Select ${label}`}
-        checked={selection.isSelected(id)}
-        onCheckedChange={(checked) => selection.toggle(id, checked === true)}
+        checked={checked}
+        onCheckedChange={(value) => onToggle(id, value === true)}
       />
     </TableCell>
   )
