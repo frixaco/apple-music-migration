@@ -13,6 +13,8 @@ export type Track = {
   title: string
   artist: string
   durationSeconds: number | null
+  /** Every reading of the title the track is compared by, starting with `title`; the best one counts. */
+  titles: string[]
   /** Identities that mean the same recording when shared: `video:<id>` and `song:<catalog id>`. */
   ids: string[]
 }
@@ -38,8 +40,39 @@ export function videoTrack(
     title: parsed.track,
     artist: parsed.artist,
     durationSeconds: video.durationSeconds,
+    titles: [
+      ...new Set([
+        parsed.track,
+        quotedTitle(video.title),
+        beforePipe(parsed.track),
+      ]),
+    ].filter(Boolean),
     ids: [`video:${video.videoId}`],
   }
+}
+
+/** The one "quoted" part of a title like `Claret EP - "Link Up" | Zenless Zone Zero`. Quotes in (…) or […] name something else, e.g. `(From "Top Gun: Maverick")`. */
+function quotedTitle(title: string): string {
+  const quoted = [
+    ...title
+      .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+      .matchAll(/["“]([^"”]+)["”]/g),
+  ]
+  return quoted.length === 1 ? quoted[0][1].trim() : ''
+}
+
+/** A title without the ` | Game` or ` | Channel` suffix; a pipe inside (…) or […] stays. */
+function beforePipe(title: string): string {
+  let depth = 0
+  for (let index = 0; index < title.length; index++) {
+    const char = title[index]
+    if (char === '(' || char === '[') depth++
+    else if ((char === ')' || char === ']') && depth > 0) depth--
+    else if (depth === 0 && title.startsWith(' | ', index)) {
+      return title.slice(0, index).trim()
+    }
+  }
+  return ''
 }
 
 export function songTrack(song: Song): Track {
@@ -48,6 +81,7 @@ export function songTrack(song: Song): Track {
     title: song.name,
     artist: song.artist,
     durationSeconds: song.durationSeconds,
+    titles: [song.name],
     ids: [
       ...(song.catalogId ? [`song:${song.catalogId}`] : []),
       // A song added from a match run is the same recording as the video it came from.
@@ -72,7 +106,13 @@ function compareTracks(left: Track, right: Track): Likeness | null {
     return { id: right.id, kind: 'same', reason: 'Same song', score: 2 }
   }
 
-  const title = similarity(coreTitle(left.title), coreTitle(right.title))
+  const title = Math.max(
+    ...left.titles.flatMap((leftTitle) =>
+      right.titles.map((rightTitle) =>
+        similarity(coreTitle(leftTitle), coreTitle(rightTitle)),
+      ),
+    ),
+  )
   const artist = similarity(left.artist, right.artist)
   const length = scoreDuration(left.durationSeconds, right.durationSeconds)
   const score = title * 0.6 + artist * 0.3 + length * 0.1
@@ -110,7 +150,7 @@ function compareTracks(left: Track, right: Track): Likeness | null {
 const stopWords = new Set(['the', 'feat', 'ft', 'featuring', 'and', 'remix'])
 
 function titleWords(track: Track): string[] {
-  return normalize(track.title)
+  return normalize(track.titles.join(' '))
     .split(' ')
     .filter((word) => word.length > 1 && !stopWords.has(word))
 }
