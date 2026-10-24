@@ -17,6 +17,13 @@ export function canAddTo(playlist: Playlist): boolean {
   return playlist.canEdit || playlist.isFavorites
 }
 
+/** The playlist on YouTube or in the Apple Music web player. */
+export function playlistUrl(playlist: Pick<Playlist, 'service' | 'id'>) {
+  return playlist.service === 'youtube'
+    ? `https://www.youtube.com/playlist?list=${playlist.id}`
+    : `https://music.apple.com/library/playlist/${playlist.id}`
+}
+
 /** Link options for a playlist's page. */
 export function playlistRoute(playlist: Pick<Playlist, 'service' | 'id'>) {
   return playlist.service === 'youtube'

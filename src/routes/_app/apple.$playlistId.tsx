@@ -3,13 +3,14 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ConfirmButton } from '@/components/confirm-button'
-import { DetailPanel, DetailRow } from '@/components/detail-panel'
+import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
 import {
   FilterInput,
   ListActions,
   ListFooter,
   ListToolbar,
+  PlaylistHeader,
   SelectAllHead,
   SelectRowCell,
 } from '@/components/list-layout'
@@ -110,6 +111,7 @@ function ApplePlaylist() {
   return (
     <>
       <section className="flex min-w-0 flex-1 flex-col">
+        {playlist && <PlaylistHeader playlist={playlist} noun="song" />}
         <ListToolbar>
           <FilterInput
             value={text}
@@ -157,7 +159,7 @@ function ApplePlaylist() {
               <TableHead className="w-14 text-right max-md:hidden">
                 Length
               </TableHead>
-              <TableHead className="w-36 max-lg:hidden">From</TableHead>
+              <TableHead className="w-36 max-lg:hidden">Matched from</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -204,8 +206,8 @@ function ApplePlaylist() {
           </TableBody>
         </Table>
         <ListFooter
-          start={`${formatCount(songs.length)} songs · synced ${timeAgo(new Date(dataUpdatedAt))}`}
-          end="From shows the YouTube video a song was matched from"
+          start={`${formatCount(visible.length)} of ${formatCount(songs.length)} songs shown`}
+          end={`Loaded from Apple Music ${timeAgo(new Date(dataUpdatedAt))}`}
         />
       </section>
       {active && (
@@ -252,15 +254,15 @@ function ApplePlaylist() {
               )}
             </div>
           </div>
-          <Separator />
-          <dl className="p-4">
-            <DetailRow label="Playlist">{playlist?.title}</DetailRow>
-            <DetailRow label="Catalog ID">
-              <span className="font-mono text-[11px]">
-                {active.catalogId ?? 'Not in catalog'}
-              </span>
-            </DetailRow>
-          </dl>
+          {!active.catalogId && (
+            <>
+              <Separator />
+              <p className="p-4 text-muted-foreground">
+                Not in the Apple Music catalog, so it can't be added to other
+                playlists.
+              </p>
+            </>
+          )}
           {active.source && (
             <>
               <Separator />

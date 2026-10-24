@@ -11,6 +11,7 @@ import {
   ListActions,
   ListFooter,
   ListToolbar,
+  PlaylistHeader,
   SelectAllHead,
   SelectRowCell,
 } from '@/components/list-layout'
@@ -187,6 +188,7 @@ function YouTubePlaylist() {
   return (
     <>
       <section className="flex min-w-0 flex-1 flex-col">
+        {playlist && <PlaylistHeader playlist={playlist} noun="video" />}
         <ListToolbar>
           <FilterTabs
             filters={filters}
@@ -325,8 +327,8 @@ function YouTubePlaylist() {
           </TableBody>
         </Table>
         <ListFooter
-          start={`${formatCount(visible.length)} of ${formatCount(videos.length)} videos · synced ${timeAgo(new Date(dataUpdatedAt))}`}
-          end="Hover a title for its thumbnail"
+          start={`${formatCount(visible.length)} of ${formatCount(videos.length)} videos shown`}
+          end={`Loaded from YouTube ${timeAgo(new Date(dataUpdatedAt))}`}
         />
       </section>
       {active && (
@@ -359,7 +361,7 @@ function YouTubePlaylist() {
             </>
           }
         >
-          <VideoDetails video={active} playlistTitle={title} />
+          <VideoDetails video={active} />
         </DetailPanel>
       )}
     </>
@@ -411,13 +413,7 @@ function VideoTitle({ video }: { video: Video }) {
   )
 }
 
-function VideoDetails({
-  video,
-  playlistTitle,
-}: {
-  video: Video
-  playlistTitle: string
-}) {
+function VideoDetails({ video }: { video: Video }) {
   return (
     <>
       <div className="space-y-3 p-4">
@@ -440,11 +436,7 @@ function VideoDetails({
       </div>
       <Separator />
       <dl className="p-4">
-        <DetailRow label="Playlist">{playlistTitle}</DetailRow>
         <DetailRow label="Added">{timeAgo(video.addedAt)}</DetailRow>
-        <DetailRow label="Video ID">
-          <span className="font-mono text-[11px]">{video.videoId}</span>
-        </DetailRow>
         <DetailRow label="Apple Music">{appleStatus(video)}</DetailRow>
       </dl>
       {video.description && (

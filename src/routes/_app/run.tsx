@@ -151,11 +151,16 @@ function OpenRun({ run }: { run: MatchRun }) {
       <section className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-11 shrink-0 items-center gap-3 border-b px-3">
           <h1 className="shrink-0 font-medium whitespace-nowrap">Match run</h1>
-          <span
-            className="min-w-0 truncate text-muted-foreground"
-            title={run.sourcePlaylistTitle}
-          >
-            {run.sourcePlaylistTitle}
+          <span className="min-w-0 truncate text-muted-foreground">
+            from YouTube playlist{' '}
+            <Link
+              to="/youtube/$playlistId"
+              params={{ playlistId: run.sourcePlaylistId }}
+              title={run.sourcePlaylistTitle}
+              className="text-foreground hover:underline"
+            >
+              {run.sourcePlaylistTitle}
+            </Link>
           </span>
           <Progress
             value={(searched / run.matches.length) * 100}
@@ -240,11 +245,11 @@ function OpenRun({ run }: { run: MatchRun }) {
               <TableHead className="w-10 text-right max-md:hidden">#</TableHead>
               <TableHead>YouTube title</TableHead>
               <TableHead className="w-80 max-lg:hidden">Best option</TableHead>
-              <TableHead className="w-14 text-right max-md:hidden">
-                Conf.
+              <TableHead className="w-24 text-right max-md:hidden">
+                Confidence
               </TableHead>
-              <TableHead className="w-12 text-right max-md:hidden">
-                Opt.
+              <TableHead className="w-16 text-right max-md:hidden">
+                Options
               </TableHead>
             </TableRow>
           </TableHeader>

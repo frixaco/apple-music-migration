@@ -10,7 +10,43 @@ import {
 import { TableCell, TableHead } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { Selection } from '@/hooks/use-selection'
-import { formatCount } from '@/lib/format'
+import { ExternalLink } from '@/components/external-link'
+import { ServiceTag } from '@/components/playlist-label'
+import { formatCount, plural } from '@/lib/format'
+import { canAddTo, playlistUrl, serviceName } from '@/lib/playlist'
+import type { Playlist } from '@/lib/types'
+
+/** Which playlist a list shows: its service, title, size and a link to the original. */
+export function PlaylistHeader({
+  playlist,
+  noun,
+}: {
+  playlist: Playlist
+  /** Singular noun for an item, e.g. "video". */
+  noun: string
+}) {
+  return (
+    <div className="flex h-11 shrink-0 items-center gap-2 border-b px-3">
+      <ServiceTag service={playlist.service} />
+      <h1 className="min-w-0 truncate font-medium" title={playlist.title}>
+        {playlist.title}
+      </h1>
+      <span className="shrink-0 whitespace-nowrap text-muted-foreground">
+        <span className="max-md:hidden">
+          {serviceName[playlist.service]} playlist ·{' '}
+        </span>
+        {plural(playlist.count, noun)}
+        {!canAddTo(playlist) && ' · read-only'}
+      </span>
+      <ExternalLink
+        href={playlistUrl(playlist)}
+        className="ml-auto shrink-0 max-md:hidden"
+      >
+        Open in {serviceName[playlist.service]}
+      </ExternalLink>
+    </div>
+  )
+}
 
 /** The bar above a list: filters on the left, actions for selected rows on the right. */
 export function ListToolbar({ children }: { children: ReactNode }) {

@@ -5,7 +5,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ChevronDownIcon, PinIcon, PlusIcon, RefreshCwIcon } from 'lucide-react'
+import {
+  ChevronDownIcon,
+  ListMusicIcon,
+  PinIcon,
+  PlusIcon,
+  RefreshCwIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { NewPlaylistDialog } from '@/components/new-playlist-dialog'
 import { PlaylistLabel, ServiceTag } from '@/components/playlist-label'
@@ -69,8 +75,8 @@ export function PlaylistPicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           {variant === 'columns' ? (
-            <Button variant="outline" className="border-dashed">
-              <PlusIcon />
+            <Button variant="outline">
+              <ListMusicIcon />
               Playlists
               <Badge variant="count">{playlists.length}</Badge>
               <ChevronDownIcon className="text-subtle" />
