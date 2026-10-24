@@ -10,6 +10,7 @@ import {
   FilterTabs,
   ListActions,
   ListFooter,
+  ListPending,
   ListToolbar,
   PlaylistHeader,
   SelectAllHead,
@@ -53,6 +54,13 @@ import { youtubeVideoUrl } from '@/lib/youtube'
 export const Route = createFileRoute('/_app/youtube/$playlistId')({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(videosQuery(params.playlistId)),
+  pendingComponent: () => (
+    <ListPending
+      service="youtube"
+      playlistId={Route.useParams().playlistId}
+      noun="video"
+    />
+  ),
   component: YouTubePlaylist,
 })
 

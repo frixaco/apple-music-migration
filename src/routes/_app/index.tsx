@@ -9,13 +9,49 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { playlistKey, playlistRoute, serviceName } from '@/lib/playlist'
 import { playlistsQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(playlistsQuery),
+  pendingComponent: HomePending,
   component: Home,
 })
+
+function HomePending() {
+  return (
+    <div className="flex-1 overflow-y-auto" aria-busy>
+      <div className="mx-auto max-w-4xl p-6 max-md:p-3">
+        <h1 className="flex items-center gap-2 text-[15px] font-medium">
+          <Spinner />
+          Loading your playlists…
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Fetching them from YouTube and Apple Music.
+        </p>
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {(['youtube', 'apple'] as const).map((service) => (
+            <section key={service}>
+              <h2 className="mb-1 px-2 text-[11px] text-subtle">
+                {serviceName[service]}
+              </h2>
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="flex h-8 items-center px-2">
+                  <Skeleton
+                    className="h-3"
+                    style={{ width: `${40 + ((index * 23) % 40)}%` }}
+                  />
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /** Nothing opens until you choose a playlist. */
 function Home() {

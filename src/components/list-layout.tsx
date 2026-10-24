@@ -1,9 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { SearchIcon } from 'lucide-react'
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import {
   InputGroup,
   InputGroupAddon,
@@ -16,7 +19,8 @@ import { ExternalLink } from '@/components/external-link'
 import { ServiceTag } from '@/components/playlist-label'
 import { formatCount, plural } from '@/lib/format'
 import { canAddTo, playlistUrl, serviceName } from '@/lib/playlist'
-import type { Playlist } from '@/lib/types'
+import { playlistsQuery } from '@/lib/queries'
+import type { Playlist, Service } from '@/lib/types'
 
 /** Which playlist a list shows: its service, title, size and a link to the original. */
 export function PlaylistHeader({
@@ -47,6 +51,53 @@ export function PlaylistHeader({
         Open in {serviceName[playlist.service]}
       </ExternalLink>
     </div>
+  )
+}
+
+/** Shown while a playlist's items load: its header from the cached playlist list, then placeholder rows. */
+export function ListPending({
+  service,
+  playlistId,
+  noun,
+}: {
+  service: Service
+  playlistId: string
+  noun: string
+}) {
+  const { data: playlists = [] } = useQuery(playlistsQuery)
+  const playlist = playlists.find(
+    (item) => item.service === service && item.id === playlistId,
+  )
+
+  return (
+    <section className="flex min-w-0 flex-1 flex-col" aria-busy>
+      {playlist && <PlaylistHeader playlist={playlist} noun={noun} />}
+      <ListToolbar>
+        <Skeleton className="h-6 w-56" />
+      </ListToolbar>
+      <div className="flex-1 overflow-hidden">
+        {Array.from({ length: 24 }, (_, index) => (
+          <div
+            key={index}
+            className="flex h-7 items-center gap-3 border-b px-3"
+          >
+            <Skeleton className="size-4" />
+            <Skeleton
+              className="h-3"
+              style={{ width: `${30 + ((index * 37) % 40)}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <ListFooter
+        start={
+          <span className="flex items-center gap-1.5">
+            <Spinner className="size-3" />
+            Loading {noun}s from {serviceName[service]}…
+          </span>
+        }
+      />
+    </section>
   )
 }
 

@@ -93,10 +93,24 @@ export class AppleMusicClient {
   async getAllLibraryPlaylistTracks(
     playlistId: string,
   ): Promise<AppleMusicTrack[]> {
+    const path = `/v1/me/library/playlists/${playlistId}/tracks?limit=100`
     try {
-      return await this.getAllPages<AppleMusicTrack>(
-        `/v1/me/library/playlists/${playlistId}/tracks?limit=100`,
+      // The first page gives the total, so the rest load in parallel instead of following `next`.
+      const first = await this.get<AppleMusicPage<AppleMusicTrack>>(path)
+      const items = first.data ?? []
+      const offsets: number[] = []
+      for (
+        let offset = items.length;
+        offset < (first.meta?.total ?? 0);
+        offset += 100
       )
+        offsets.push(offset)
+      const rest = await Promise.all(
+        offsets.map((offset) =>
+          this.get<AppleMusicPage<AppleMusicTrack>>(`${path}&offset=${offset}`),
+        ),
+      )
+      return items.concat(...rest.map((page) => page.data ?? []))
     } catch (error) {
       if (String(error).includes('"code":"40403"')) {
         return []

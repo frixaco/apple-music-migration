@@ -13,6 +13,9 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    // Playlist loaders call YouTube and Apple Music, which take seconds; show the route's
+    // loading state almost at once instead of after the default second.
+    defaultPendingMs: 150,
   })
 
   setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })

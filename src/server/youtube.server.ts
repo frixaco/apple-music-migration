@@ -142,20 +142,23 @@ export class YouTubeClient {
   }
 
   private async getDurations(videoIds: string[]): Promise<Map<string, number>> {
-    const durations = new Map<string, number>()
+    const pages = await Promise.all(
+      chunks(videoIds, 50).map((ids) =>
+        this.request<Page<VideoResource>>('GET', '/videos', {
+          part: 'contentDetails',
+          id: ids.join(','),
+        }),
+      ),
+    )
 
-    for (const ids of chunks(videoIds, 50)) {
-      const page = await this.request<Page<VideoResource>>('GET', '/videos', {
-        part: 'contentDetails',
-        id: ids.join(','),
-      })
-
-      for (const video of page.items ?? []) {
-        durations.set(video.id, parseIsoDuration(video.contentDetails.duration))
-      }
-    }
-
-    return durations
+    return new Map(
+      pages.flatMap((page) =>
+        (page.items ?? []).map((video) => [
+          video.id,
+          parseIsoDuration(video.contentDetails.duration),
+        ]),
+      ),
+    )
   }
 
   private async getAllPages<T>(
