@@ -253,7 +253,7 @@ function OpenRun({ run }: { run: MatchRun }) {
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...selection.bodyProps}>
             {visible.map((item) => {
               const option = bestOption(item)
               return (

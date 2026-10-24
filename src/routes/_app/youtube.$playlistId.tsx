@@ -285,7 +285,7 @@ function YouTubePlaylist() {
               <TableHead className="w-48 max-md:hidden">Apple Music</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...selection.bodyProps}>
             {visible.map((video) => (
               <TableRow
                 key={video.videoId}

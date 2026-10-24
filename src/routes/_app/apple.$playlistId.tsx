@@ -162,7 +162,7 @@ function ApplePlaylist() {
               <TableHead className="w-36 max-lg:hidden">Matched from</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...selection.bodyProps}>
             {visible.map((song) => (
               <TableRow
                 key={song.id}
