@@ -16,6 +16,7 @@
   --row-sel: #f2f2f0;
   --brand: #2f5bea;
   --brand-tint: #eef2fd;
+  --warn: #ffd43b;
 
   --background: var(--bg);
   --foreground: var(--fg);
@@ -63,6 +64,7 @@
   --color-ring: var(--ring);
   --color-subtle: var(--fg-3);
   --color-selected: var(--brand-tint);
+  --color-warn: var(--warn);
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);

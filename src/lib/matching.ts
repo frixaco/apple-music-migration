@@ -376,7 +376,7 @@ function normalizedTokens(value: string): string[] {
     .filter((token) => token.length > 1 && !stopWords.has(token))
 }
 
-function similarity(left: string, right: string): number {
+export function similarity(left: string, right: string): number {
   const leftComparable = normalize(left)
   const rightComparable = normalize(right)
 

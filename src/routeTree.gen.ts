@@ -14,6 +14,7 @@ import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppRunRouteImport } from './routes/_app/run'
+import { Route as AppSplitRouteImport } from './routes/_app/split'
 import { Route as AppApplePlaylistIdRouteImport } from './routes/_app/apple.$playlistId'
 import { Route as AppYoutubePlaylistIdRouteImport } from './routes/_app/youtube.$playlistId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -42,6 +43,11 @@ const AppRunRoute = AppRunRouteImport.update({
   path: '/run',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSplitRoute = AppSplitRouteImport.update({
+  id: '/split',
+  path: '/split',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppApplePlaylistIdRoute = AppApplePlaylistIdRouteImport.update({
   id: '/apple/$playlistId',
   path: '/apple/$playlistId',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/connect': typeof ConnectRoute
   '/sign-in': typeof SignInRoute
   '/run': typeof AppRunRoute
+  '/split': typeof AppSplitRoute
   '/apple/$playlistId': typeof AppApplePlaylistIdRoute
   '/youtube/$playlistId': typeof AppYoutubePlaylistIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/connect': typeof ConnectRoute
   '/sign-in': typeof SignInRoute
   '/run': typeof AppRunRoute
+  '/split': typeof AppSplitRoute
   '/': typeof AppIndexRoute
   '/apple/$playlistId': typeof AppApplePlaylistIdRoute
   '/youtube/$playlistId': typeof AppYoutubePlaylistIdRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/connect': typeof ConnectRoute
   '/sign-in': typeof SignInRoute
   '/_app/run': typeof AppRunRoute
+  '/_app/split': typeof AppSplitRoute
   '/_app/': typeof AppIndexRoute
   '/_app/apple/$playlistId': typeof AppApplePlaylistIdRoute
   '/_app/youtube/$playlistId': typeof AppYoutubePlaylistIdRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/sign-in'
     | '/run'
+    | '/split'
     | '/apple/$playlistId'
     | '/youtube/$playlistId'
     | '/api/auth/$'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/sign-in'
     | '/run'
+    | '/split'
     | '/'
     | '/apple/$playlistId'
     | '/youtube/$playlistId'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/sign-in'
     | '/_app/run'
+    | '/_app/split'
     | '/_app/'
     | '/_app/apple/$playlistId'
     | '/_app/youtube/$playlistId'
@@ -162,6 +174,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRunRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/split': {
+      id: '/_app/split'
+      path: '/split'
+      fullPath: '/split'
+      preLoaderRoute: typeof AppSplitRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/apple/$playlistId': {
       id: '/_app/apple/$playlistId'
       path: '/apple/$playlistId'
@@ -188,6 +207,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppRunRoute: typeof AppRunRoute
+  AppSplitRoute: typeof AppSplitRoute
   AppIndexRoute: typeof AppIndexRoute
   AppApplePlaylistIdRoute: typeof AppApplePlaylistIdRoute
   AppYoutubePlaylistIdRoute: typeof AppYoutubePlaylistIdRoute
@@ -195,6 +215,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppRunRoute: AppRunRoute,
+  AppSplitRoute: AppSplitRoute,
   AppIndexRoute: AppIndexRoute,
   AppApplePlaylistIdRoute: AppApplePlaylistIdRoute,
   AppYoutubePlaylistIdRoute: AppYoutubePlaylistIdRoute,

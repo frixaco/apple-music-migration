@@ -50,9 +50,12 @@ import { cn } from '@/lib/utils'
 export function PlaylistPicker({
   variant,
   current,
+  onOpen,
 }: {
   variant: 'columns' | 'menu'
   current?: Playlist
+  /** Called with the chosen playlist instead of opening its page. */
+  onOpen?: (playlist: Playlist) => void
 }) {
   const [open, setOpen] = useState(false)
   const [newService, setNewService] = useState<Service | null>(null)
@@ -61,7 +64,8 @@ export function PlaylistPicker({
 
   const openPlaylist = (playlist: Playlist) => {
     setOpen(false)
-    void navigate(playlistRoute(playlist))
+    if (onOpen) onOpen(playlist)
+    else void navigate(playlistRoute(playlist))
   }
   const createOn = (service: Service) => {
     setOpen(false)
@@ -101,7 +105,7 @@ export function PlaylistPicker({
             'p-0',
             variant === 'columns'
               ? 'w-[720px]'
-              : 'w-(--radix-popover-trigger-width) min-w-[calc(100vw-1rem)]',
+              : 'w-(--radix-popover-trigger-width) min-w-80 max-md:min-w-[calc(100vw-1rem)]',
           )}
         >
           <Command>

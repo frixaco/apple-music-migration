@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useLocation, useParams } from '@tanstack/react-router'
-import { SearchIcon } from 'lucide-react'
+import { Link, useLocation, useParams, useSearch } from '@tanstack/react-router'
+import { Columns2Icon, SearchIcon } from 'lucide-react'
 import { AccountMenu } from '@/components/account-menu'
 import { Brand } from '@/components/brand'
 import { PlaylistPicker } from '@/components/playlist-picker'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { playlistKey, playlistRoute } from '@/lib/playlist'
 import { playlistsQuery, runQuery } from '@/lib/queries'
+import type { Playlist } from '@/lib/types'
 
 export function TopBar() {
   const { data: playlists = [] } = useQuery(playlistsQuery)
@@ -42,6 +43,7 @@ export function TopBar() {
         <PlaylistPicker variant="menu" current={current} />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        <SplitButton current={current} />
         <RunButton />
         <AccountMenu />
       </div>
@@ -68,6 +70,39 @@ function RunButton() {
           {searched} / {run.matches.length}
           <span className="max-md:hidden"> searched</span>
         </span>
+      </Link>
+    </Button>
+  )
+}
+
+/** Opens the current playlist on the left of the split view, or leaves the split view. */
+function SplitButton({ current }: { current: Playlist | undefined }) {
+  const { pathname } = useLocation()
+  const { left } = useSearch({ strict: false })
+  const { data: playlists = [] } = useQuery(playlistsQuery)
+
+  if (pathname === '/split') {
+    const leftPlaylist = playlists.find(
+      (playlist) => playlistKey(playlist) === left,
+    )
+    return (
+      <Button variant="secondary" aria-pressed asChild>
+        <Link {...(leftPlaylist ? playlistRoute(leftPlaylist) : { to: '/' })}>
+          <Columns2Icon />
+          <span className="max-md:hidden">Side by side</span>
+        </Link>
+      </Button>
+    )
+  }
+
+  return (
+    <Button variant="outline" asChild>
+      <Link
+        to="/split"
+        search={{ left: current ? playlistKey(current) : undefined }}
+      >
+        <Columns2Icon />
+        <span className="max-md:hidden">Side by side</span>
       </Link>
     </Button>
   )
