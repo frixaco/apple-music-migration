@@ -587,7 +587,8 @@ function VideoTitle({
   )
 }
 
-function VideoDetails({ video }: { video: Video }) {
+/** A video's thumbnail, YouTube link, Apple Music status and description. */
+export function VideoDetails({ video }: { video: Video }) {
   return (
     <>
       <div className="space-y-3 p-4">

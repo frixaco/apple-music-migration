@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeftRightIcon, Columns2Icon, XIcon } from 'lucide-react'
 import { Suspense, useMemo, useState } from 'react'
-import { AppleList } from '@/components/apple-list'
+import { AppleList, SongDetails } from '@/components/apple-list'
+import { DetailPanel } from '@/components/detail-panel'
 import { ExternalLink } from '@/components/external-link'
 import { ListPending } from '@/components/list-layout'
 import { PlaylistPicker } from '@/components/playlist-picker'
@@ -16,7 +17,8 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { YouTubeList } from '@/components/youtube-list'
+import { VideoDetails, YouTubeList } from '@/components/youtube-list'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { comparePlaylists, songTrack, videoTrack } from '@/lib/compare'
 import type { Track } from '@/lib/compare'
 import { plural } from '@/lib/format'
@@ -111,10 +113,12 @@ function SplitView() {
   const likeness = { left: leftLikeness, right: rightLikeness }
 
   const [focus, setFocus] = useState<{ side: Side; id: string }>()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [mobileSide, setMobileSide] = useState<Side>('left')
 
   const setSides = (next: SplitSearch) => {
     setFocus(undefined)
+    setDetailsOpen(false)
     void navigate({ to: '/split', search: next })
   }
   const close = (side: Side) => {
@@ -148,7 +152,10 @@ function SplitView() {
       other: playlistOf(otherSide),
       likeness: likeness[side],
       focusedId: focus?.side === side ? focus.id : undefined,
-      onFocus: (id) => setFocus({ side, id }),
+      onFocus: (id) => {
+        setFocus({ side, id })
+        setDetailsOpen(true)
+      },
       incoming: source && {
         title: source.artist
           ? `${source.title} — ${source.artist}`
@@ -226,8 +233,73 @@ function SplitView() {
             </div>
           )
         })}
+        {focus && refs[focus.side] && (
+          <FocusDetails
+            playlist={refs[focus.side]!}
+            id={focus.id}
+            open={detailsOpen}
+            onOpenChange={setDetailsOpen}
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+/** The details and link of the row clicked on either side, until closed. */
+function FocusDetails({
+  playlist,
+  id,
+  open,
+  onOpenChange,
+}: {
+  playlist: PlaylistRef
+  id: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const isMobile = useIsMobile()
+  const videos = useQuery({
+    ...videosQuery(playlist.id),
+    enabled: playlist.service === 'youtube',
+  })
+  const songs = useQuery({
+    ...songsQuery(playlist.id),
+    enabled: playlist.service === 'apple',
+  })
+  const video =
+    playlist.service === 'youtube'
+      ? videos.data?.find((item) => item.videoId === id)
+      : undefined
+  const song =
+    playlist.service === 'apple'
+      ? songs.data?.find((item) => item.id === id)
+      : undefined
+  // On desktop the panel is a column that stays until closed; on mobile it is a sheet.
+  if ((!video && !song) || (!open && !isMobile)) return null
+
+  return (
+    <DetailPanel
+      title={video ? 'Video' : 'Song'}
+      meta={
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Close details"
+          onClick={() => onOpenChange(false)}
+        >
+          <XIcon />
+        </Button>
+      }
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {video ? (
+        <VideoDetails video={video} />
+      ) : (
+        song && <SongDetails song={song} />
+      )}
+    </DetailPanel>
   )
 }
 

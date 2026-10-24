@@ -68,7 +68,6 @@ export function AppleList({
     songsQuery(playlistId),
   )
   const { data: playlists = [] } = useQuery(playlistsQuery)
-  const { data: connections } = useQuery(connectionsQuery)
   const playlist = playlists.find(
     (item) => item.service === 'apple' && item.id === playlistId,
   )
@@ -124,11 +123,6 @@ export function AppleList({
         playlistIds,
       },
     })
-  const activeUrl =
-    active?.catalogId && connections?.apple
-      ? `https://music.apple.com/${connections.apple.storefront}/song/${active.catalogId}`
-      : null
-
   return (
     <>
       <section className="flex min-w-0 flex-1 flex-col">
@@ -278,72 +272,83 @@ export function AppleList({
             </AddToAppleMenu>
           }
         >
-          <div className="flex gap-3 p-4">
-            {active.artworkUrl && (
-              <img
-                src={active.artworkUrl}
-                alt=""
-                className="size-28 shrink-0 rounded-md"
-              />
-            )}
-            <div className="flex min-w-0 flex-col">
-              <h3 className="text-[15px] font-medium">{active.name}</h3>
-              <div className="text-muted-foreground">{active.artist}</div>
-              <div className="text-muted-foreground">
-                {active.album} · {formatDuration(active.durationSeconds)}
-              </div>
-              {activeUrl && (
-                <ExternalLink
-                  href={activeUrl}
-                  className="mt-auto justify-start"
-                >
-                  Open in Apple Music
-                </ExternalLink>
+          <SongDetails song={active} />
+        </DetailPanel>
+      )}
+    </>
+  )
+}
+
+/** A song's artwork, album, Apple Music link and the video it was matched from. */
+export function SongDetails({ song }: { song: Song }) {
+  const { data: connections } = useQuery(connectionsQuery)
+  const url =
+    song.catalogId && connections?.apple
+      ? `https://music.apple.com/${connections.apple.storefront}/song/${song.catalogId}`
+      : null
+
+  return (
+    <>
+      <div className="flex gap-3 p-4">
+        {song.artworkUrl && (
+          <img
+            src={song.artworkUrl}
+            alt=""
+            className="size-28 shrink-0 rounded-md"
+          />
+        )}
+        <div className="flex min-w-0 flex-col">
+          <h3 className="text-[15px] font-medium">{song.name}</h3>
+          <div className="text-muted-foreground">{song.artist}</div>
+          <div className="text-muted-foreground">
+            {song.album} · {formatDuration(song.durationSeconds)}
+          </div>
+          {url && (
+            <ExternalLink href={url} className="mt-auto justify-start">
+              Open in Apple Music
+            </ExternalLink>
+          )}
+        </div>
+      </div>
+      {!song.catalogId && (
+        <>
+          <Separator />
+          <p className="p-4 text-muted-foreground">
+            Not in the Apple Music catalog, so it can't be added to other
+            playlists.
+          </p>
+        </>
+      )}
+      {song.source && (
+        <>
+          <Separator />
+          <div className="p-4">
+            <div className="mb-2 text-[11px] text-subtle">Matched from</div>
+            <div className="flex gap-3">
+              {song.source.thumbnailUrl && (
+                <img
+                  src={song.source.thumbnailUrl}
+                  alt=""
+                  className="aspect-video w-24 shrink-0 rounded-md object-cover"
+                />
               )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate">{song.source.title}</div>
+                <div className="font-mono text-[11px] text-subtle">
+                  {song.source.sourcePlaylistTitle} #{song.source.position} ·{' '}
+                  {formatDuration(song.source.durationSeconds)}{' '}
+                  {formatDifference(
+                    song.durationSeconds,
+                    song.source.durationSeconds,
+                  )}
+                </div>
+                <ExternalLink href={youtubeVideoUrl(song.source.videoId)}>
+                  YouTube
+                </ExternalLink>
+              </div>
             </div>
           </div>
-          {!active.catalogId && (
-            <>
-              <Separator />
-              <p className="p-4 text-muted-foreground">
-                Not in the Apple Music catalog, so it can't be added to other
-                playlists.
-              </p>
-            </>
-          )}
-          {active.source && (
-            <>
-              <Separator />
-              <div className="p-4">
-                <div className="mb-2 text-[11px] text-subtle">Matched from</div>
-                <div className="flex gap-3">
-                  {active.source.thumbnailUrl && (
-                    <img
-                      src={active.source.thumbnailUrl}
-                      alt=""
-                      className="aspect-video w-24 shrink-0 rounded-md object-cover"
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate">{active.source.title}</div>
-                    <div className="font-mono text-[11px] text-subtle">
-                      {active.source.sourcePlaylistTitle} #
-                      {active.source.position} ·{' '}
-                      {formatDuration(active.source.durationSeconds)}{' '}
-                      {formatDifference(
-                        active.durationSeconds,
-                        active.source.durationSeconds,
-                      )}
-                    </div>
-                    <ExternalLink href={youtubeVideoUrl(active.source.videoId)}>
-                      YouTube
-                    </ExternalLink>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DetailPanel>
+        </>
       )}
     </>
   )
