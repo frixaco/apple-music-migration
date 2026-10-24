@@ -175,12 +175,14 @@ export class AppleMusicClient {
     })
   }
 
-  /** Favouriting a catalog song adds it to the Favourite Songs playlist, which cannot be edited directly. */
+  /** Favouriting a catalog song adds it to the Favourite Songs playlist, which cannot be edited directly. The endpoint accepts one id per request. */
   async addFavoriteSongs(catalogSongIds: string[]): Promise<void> {
-    await this.post(
-      `/v1/me/favorites?ids[songs]=${catalogSongIds.map(encodeURIComponent).join(',')}`,
-      undefined,
-    )
+    for (const id of catalogSongIds) {
+      await this.post(
+        `/v1/me/favorites?ids[songs]=${encodeURIComponent(id)}`,
+        undefined,
+      )
+    }
   }
 
   async deleteLibrarySongRating(librarySongId: string): Promise<void> {
